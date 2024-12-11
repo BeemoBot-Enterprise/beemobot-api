@@ -54,10 +54,11 @@
     "@adonisjs/auth": "^9.2.3",
     "@adonisjs/core": "^6.14.1",
     "@adonisjs/cors": "^2.2.1",
-    "@adonisjs/lucid": "^21.3.0",
+    "@adonisjs/lucid": "^21.5.1",
     "@vinejs/vine": "^2.1.0",
     "luxon": "^3.5.0",
     "mysql2": "^3.11.5",
+    "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2"
   },
   "hotHook": {
