@@ -1,14 +1,15 @@
 import User from '#models/user'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
+import { UserFactory } from '#database/factories/index'
 
 export default class UserSeeder extends BaseSeeder {
   async run() {
-    // Crée un utilisateur avec un mot de passe haché
     const userData = {
-      fullName: 'John Doe',
       email: 'john.doe@beemobpt-entreprise.fr',
-      password: 'passwordExample123', // Hachage du mot de passe
+      username: 'John Doe',
     }
+
+    await UserFactory.createMany(100)
 
     try {
       await User.create(userData)
