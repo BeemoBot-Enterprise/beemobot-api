@@ -5,11 +5,12 @@ export default class extends BaseSchema {
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
-      table.increments('id').notNullable()
-      table.bigInteger('discrod_id').nullable().unique()
-      table.bigInteger('riot_id').notNullable().unique()
-      table.timestamp('created_at').notNullable()
-      table.timestamp('updated_at').nullable()
+      table.increments('id').primary()
+      table.string('discord_id').unique()
+      table.string('username').notNullable()
+      table.string('email').nullable()
+      table.string('avatar').nullable()
+      table.timestamps(true)
     })
   }
 

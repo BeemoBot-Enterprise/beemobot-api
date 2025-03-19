@@ -14,3 +14,12 @@ router.get('/', async () => {
     hello: 'world',
   }
 })
+
+router.get('/example', (ctx) => {
+  console.log(ctx.inspect())
+  return {
+    ip: ctx.request.serialize(),
+    method: ctx.request.method(),
+    url: ctx.request.url(),
+  }
+})
