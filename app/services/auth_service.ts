@@ -42,7 +42,7 @@ export default class AuthService {
 
       const token = await User.accessTokens.create(user)
 
-      return response.redirect('http://localhost:4321?token=' + token.value!.release())
+      return response.redirect('http://localhost:4321/profile?token=' + token.value!.release())
     } catch (error) {
       return response.status(500).json({
         error: 'server_error',
