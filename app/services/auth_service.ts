@@ -42,12 +42,8 @@ export default class AuthService {
 
       const token = await User.accessTokens.create(user)
 
-      return response.status(200).json({
-        user: user,
-        token: token,
-      })
+      return response.redirect('http://localhost:4321?token=' + token.value!.release())
     } catch (error) {
-      console.error('Discord auth error:', error)
       return response.status(500).json({
         error: 'server_error',
         message: 'An error occurred during authentication',
