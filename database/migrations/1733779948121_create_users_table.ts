@@ -9,7 +9,7 @@ export default class extends BaseSchema {
       table.string('discord_id').unique()
       table.string('username').notNullable()
       table.string('email').nullable()
-      table.string('avatar').nullable()
+      table.string('avatar_url').nullable()
       table.timestamps(true)
     })
   }

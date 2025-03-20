@@ -15,10 +15,7 @@ export default class User extends compose(BaseModel, AuthFinder) {
   declare id: number
 
   @column()
-  declare discord_id: string | null
-
-  @column()
-  declare riot_id: string | null
+  declare discordId: string | null
 
   @column()
   declare username: string | null
@@ -26,11 +23,20 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare email: string
 
+  @column()
+  declare avatarUrl: string | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime | null
 
-  static accessTokens = DbAccessTokensProvider.forModel(User)
+  static accessTokens = DbAccessTokensProvider.forModel(User, {
+    expiresIn: '1 day',
+    prefix: 'beemo_',
+    table: 'auth_access_tokens',
+    type: 'auth_token',
+    tokenSecretLength: 40,
+  })
 }
