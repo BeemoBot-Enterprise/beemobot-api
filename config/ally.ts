@@ -3,9 +3,9 @@ import { defineConfig, services } from '@adonisjs/ally'
 
 const allyConfig = defineConfig({
   discord: services.discord({
-    clientId: env.get('DISCORD_CLIENT_ID')!,
-    clientSecret: env.get('DISCORD_CLIENT_SECRET')!,
-    callbackUrl: env.get('DISCORD_CALLBACK_URL')!,
+    clientId: env.get('DISCORD_CLIENT_ID'),
+    clientSecret: env.get('DISCORD_CLIENT_SECRET'),
+    callbackUrl: env.get('DISCORD_CALLBACK_URL'),
   }),
 })
 
