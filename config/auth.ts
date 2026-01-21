@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import { defineConfig } from '@adonisjs/auth'
 import { tokensGuard, tokensUserProvider } from '@adonisjs/auth/access_tokens'
 import type { InferAuthEvents, Authenticators } from '@adonisjs/auth/types'

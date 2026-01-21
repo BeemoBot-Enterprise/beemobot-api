@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 /*
 |--------------------------------------------------------------------------
 | Environment variables service
@@ -35,5 +40,22 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   DISCORD_CLIENT_ID: Env.schema.string(),
-  DISCORD_CLIENT_SECRET: Env.schema.string()
+  DISCORD_CLIENT_SECRET: Env.schema.string(),
+  DISCORD_CALLBACK_URL: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring Riot API
+  |----------------------------------------------------------
+  */
+  RIOT_API_KEY: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring Riot OAuth (optionnelles)
+  |----------------------------------------------------------
+  */
+  RIOT_CLIENT_ID: Env.schema.string.optional(),
+  RIOT_CLIENT_SECRET: Env.schema.string.optional(),
+  RIOT_CALLBACK_URL: Env.schema.string.optional(),
 })

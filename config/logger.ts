@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import env from '#start/env'
 import app from '@adonisjs/core/services/app'
 import { defineConfig, targets } from '@adonisjs/core/logger'

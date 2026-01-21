@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import { HttpContext } from '@adonisjs/core/http'
 import Shroom from '#models/shroom'
 import Respect from '#models/respect'

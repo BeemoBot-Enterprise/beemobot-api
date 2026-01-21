@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 /*
 |--------------------------------------------------------------------------
 | JavaScript entrypoint for running ace commands

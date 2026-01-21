@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 // app/Services/AuthService.ts
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
@@ -50,6 +55,53 @@ export default class AuthService {
       })
     }
   }
+  public async handleRiotCallback({ ally, response }: HttpContext) {
+    try {
+      const riot = ally.use('riot')
+
+      if (riot.accessDenied()) {
+        return response.status(403).json({
+          error: 'access_denied',
+          message: 'Riot access was denied',
+        })
+      }
+
+      if (riot.stateMisMatch()) {
+        return response.status(400).json({
+          error: 'state_mismatch',
+          message: 'Request state validation failed',
+        })
+      }
+
+      if (riot.hasError()) {
+        return response.status(400).json({
+          error: 'authentication_error',
+          message: 'An error occurred during authentication',
+        })
+      }
+
+      const riotUser = await riot.user()
+
+      const user = await User.updateOrCreate(
+        { riotPuuid: riotUser.id },
+        {
+          riotPuuid: riotUser.id,
+          riotGameName: riotUser.name,
+          riotTagLine: riotUser.nickName.split('#')[1] || '',
+        }
+      )
+
+      const token = await User.accessTokens.create(user)
+
+      return response.redirect('https://beemobot.fr/profile?token=' + token.value!.release())
+    } catch (error) {
+      return response.status(500).json({
+        error: 'server_error',
+        message: 'An error occurred during authentication',
+      })
+    }
+  }
+
   public async handleGenerateAccessToken({ response }: HttpContext, user: User) {
     const token = await User.accessTokens.create(user)
     return response.status(200).json({

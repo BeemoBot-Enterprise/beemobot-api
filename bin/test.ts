@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 /*
 |--------------------------------------------------------------------------
 | Test runner entrypoint

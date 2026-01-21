@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import { defineConfig } from '@adonisjs/core/app'
 
 export default defineConfig({
@@ -32,7 +37,7 @@ export default defineConfig({
     () => import('@adonisjs/cors/cors_provider'),
     () => import('@adonisjs/lucid/database_provider'),
     () => import('@adonisjs/auth/auth_provider'),
-    () => import('@adonisjs/ally/ally_provider')
+    () => import('@adonisjs/ally/ally_provider'),
   ],
 
   /*

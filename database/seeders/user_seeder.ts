@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import User from '#models/user'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import { UserFactory } from '#database/factories/index'

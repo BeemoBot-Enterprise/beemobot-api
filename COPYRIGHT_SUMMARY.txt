@@ -1,0 +1,130 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                  COPYRIGHT BEEMOBOT ENTERPRISE 2024-2026                  ║
+║                            Tous droits réservés                           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+📅 Date de mise à jour : 21 janvier 2026
+👤 Entreprise : BeemoBot Enterprise
+📜 Licence : Tous droits réservés (All rights reserved)
+
+═══════════════════════════════════════════════════════════════════════════
+
+📊 RÉSUMÉ DES FICHIERS MODIFIÉS
+
+✅ 50 fichiers source ont reçu le copyright BeemoBot Enterprise
+
+═══════════════════════════════════════════════════════════════════════════
+
+📁 CATÉGORIES DE FICHIERS MODIFIÉS :
+
+🔹 Controllers (3 fichiers)
+   • app/controllers/auth_controller.ts
+   • app/controllers/game_controller.ts
+   • app/controllers/lol_controller.ts
+
+🔹 Models (3 fichiers)
+   • app/models/user.ts
+   • app/models/shroom.ts
+   • app/models/respect.ts
+
+🔹 Services (5 fichiers)
+   • app/services/auth_service.ts
+   • app/services/response_service.ts
+   • app/services/riot_api_service.ts
+   • app/services/riot_oauth_provider.ts
+   • app/services/user_service.ts
+
+🔹 Middleware (3 fichiers)
+   • app/middleware/auth_middleware.ts
+   • app/middleware/container_bindings_middleware.ts
+   • app/middleware/force_json_response_middleware.ts
+
+🔹 Repositories (1 fichier)
+   • app/repositories/user_repository.ts
+
+🔹 Types (1 fichier)
+   • app/types/user_type.ts
+
+🔹 Exceptions (1 fichier)
+   • app/exceptions/handler.ts
+
+🔹 Bin (3 fichiers)
+   • bin/console.ts
+   • bin/server.ts
+   • bin/test.ts
+
+🔹 Config (8 fichiers)
+   • config/ally.ts
+   • config/app.ts
+   • config/auth.ts
+   • config/bodyparser.ts
+   • config/cors.ts
+   • config/database.ts
+   • config/hash.ts
+   • config/logger.ts
+
+🔹 Database (10 fichiers)
+   • database/factories/index.ts
+   • database/seeders/user_seeder.ts
+   • database/migrations/1733779948121_create_users_table.ts
+   • database/migrations/1733779948122_create_access_tokens_table.ts
+   • database/migrations/1733928687607_create_shrooms_table.ts
+   • database/migrations/1733928888652_create_reports_table.ts
+   • database/migrations/1733928888653_create_respects_table.ts
+   • database/migrations/1733929105889_create_champions_table.ts
+   • database/migrations/1734928888654_modify_tables_username.ts
+   • database/migrations/1737446400000_add_riot_fields_to_users.ts
+
+🔹 Start (4 fichiers)
+   • start/ally.ts
+   • start/env.ts
+   • start/kernel.ts
+   • start/routes.ts
+
+🔹 Tests (1 fichier)
+   • tests/bootstrap.ts
+
+🔹 Configuration Root (3 fichiers)
+   • adonisrc.ts
+   • ace.js
+   • eslint.config.js
+
+🔹 Documentation (4 fichiers)
+   • API.md
+   • README.md
+   • SETUP.md
+   • MIGRATION_RIOT_API.md
+
+🔹 Fichiers de configuration (3 fichiers)
+   • .editorconfig
+   • .gitignore
+   • .env.example
+
+═══════════════════════════════════════════════════════════════════════════
+
+📝 FORMAT DU COPYRIGHT :
+
+Pour fichiers TypeScript/JavaScript :
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
+Pour fichiers Markdown :
+<!--
+Copyright (c) 2024-2026 BeemoBot Enterprise
+All rights reserved.
+-->
+
+Pour fichiers de configuration (.env, .editorconfig, .gitignore) :
+# Copyright (c) 2024-2026 BeemoBot Enterprise
+# All rights reserved.
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ STATUT : COMPLÉTÉ
+
+Tous les fichiers source du projet BeemoBot API contiennent maintenant
+le copyright de BeemoBot Enterprise avec tous droits réservés.
+
+═══════════════════════════════════════════════════════════════════════════

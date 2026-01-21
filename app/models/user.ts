@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
@@ -25,6 +30,15 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare avatarUrl: string | null
+
+  @column()
+  declare riotPuuid: string | null
+
+  @column()
+  declare riotGameName: string | null
+
+  @column()
+  declare riotTagLine: string | null
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

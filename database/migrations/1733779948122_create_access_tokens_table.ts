@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2024-2026 BeemoBot Enterprise
+ * All rights reserved.
+ */
+
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
