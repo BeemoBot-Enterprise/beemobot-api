@@ -47,7 +47,9 @@ export default class AuthService {
 
       const token = await User.accessTokens.create(user)
 
-      return response.redirect('https://beemobot.fr/profile?token=' + token.value!.release())
+      return response.redirect(
+        'https:///beemobot-webapp.vercel.app/profile?token=' + token.value!.release()
+      )
     } catch (error) {
       return response.status(500).json({
         error: 'server_error',
@@ -93,7 +95,9 @@ export default class AuthService {
 
       const token = await User.accessTokens.create(user)
 
-      return response.redirect('https://beemobot.fr/profile?token=' + token.value!.release())
+      return response.redirect(
+        'https://beemobot-webapp.vercel.app/profile?token=' + token.value!.release()
+      )
     } catch (error) {
       return response.status(500).json({
         error: 'server_error',
