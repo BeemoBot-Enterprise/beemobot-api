@@ -10,6 +10,7 @@ import logger from '@adonisjs/core/services/logger'
 import { linkRiotValidator } from '#validators/auth'
 import RiotApiService from '#services/riot_api_service'
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 
 export default class AuthService {
   public async handleDiscordCallback({ ally, response }: HttpContext) {
@@ -82,10 +83,17 @@ export default class AuthService {
     user.linkedAt = DateTime.now()
     await user.save()
 
+    const phantomRow = await db
+      .from('reputation_events')
+      .where('receiver_puuid', account.puuid)
+      .count('* as cnt')
+    const phantomTotal = Number(phantomRow[0].cnt ?? 0)
+
     return response.json({
       puuid: account.puuid,
       gameName: account.gameName,
       tagLine: account.tagLine,
+      phantomEvents: phantomTotal,
     })
   }
 
