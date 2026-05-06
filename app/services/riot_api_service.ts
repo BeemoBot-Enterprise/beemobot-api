@@ -5,6 +5,7 @@
 
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
+import Cache from '#services/cache'
 
 export type RiotRegion =
   | 'euw1'
@@ -248,10 +249,11 @@ export default class RiotApiService {
    * Récupère tous les champions
    */
   async getAllChampions() {
-    const data = await this.fetchDataDragon<{ data: Record<string, any> }>(
-      `data/fr_FR/champion.json`
-    )
-    return data.data
+    const version = await this.getLatestVersion()
+    return Cache.memo(`ddragon:champions:${version}`, 3600, async () => {
+      const data = await this.fetchDataDragon<{ data: Record<string, any> }>(`data/fr_FR/champion.json`)
+      return data.data
+    })
   }
 
   /**
@@ -268,9 +270,11 @@ export default class RiotApiService {
    * Récupère la dernière version de Data Dragon
    */
   async getLatestVersion(): Promise<string> {
-    const url = `${RiotApiService.DDRAGON_BASE}/api/versions.json`
-    const versions = (await fetch(url).then((r) => r.json())) as string[]
-    return versions[0]
+    return Cache.memo('ddragon:latest', 3600, async () => {
+      const url = `${RiotApiService.DDRAGON_BASE}/api/versions.json`
+      const versions = (await fetch(url).then((r) => r.json())) as string[]
+      return versions[0]
+    })
   }
 
   /**
