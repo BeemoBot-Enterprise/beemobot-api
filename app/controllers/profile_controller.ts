@@ -19,6 +19,16 @@ export default class ProfileController {
     })
   }
 
+  async byDiscord({ params, response }: HttpContext) {
+    const user = await User.findBy('discordId', params.id)
+    if (!user?.riotPuuid) return response.status(404).json({ error: 'not_linked' })
+    return response.json({
+      puuid: user.riotPuuid,
+      gameName: user.riotGameName,
+      tagLine: user.riotTagLine,
+    })
+  }
+
   async show({ params, response }: HttpContext) {
     const puuid = params.puuid
 
