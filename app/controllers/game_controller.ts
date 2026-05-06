@@ -6,51 +6,35 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Shroom from '#models/shroom'
 import Respect from '#models/respect'
+import { giveRewardValidator } from '#validators/game'
 
 export default class GameController {
   public async giveShroom({ request, response }: HttpContext) {
-    // Récupérer le username soit du body JSON soit des paramètres d'URL
-    const username = request.input('username') || request.qs().username
-    const reason = request.input('reason')
-
-    if (!username) {
-      return response.status(400).json({
-        status: 'error',
-        message: "Le nom d'utilisateur est requis",
-      })
-    }
+    const payload = await request.validateUsing(giveRewardValidator)
 
     const shroom = await Shroom.create({
-      username: username,
-      reason: reason || null,
+      username: payload.username,
+      reason: payload.reason ?? null,
     })
 
     return response.status(201).json({
       status: 'success',
-      message: 'Shroom donné avec succès',
+      message: 'Shroom given',
       data: shroom,
     })
   }
 
   public async giveRespect({ request, response }: HttpContext) {
-    const username = request.input('username') || request.qs().username
-    const reason = request.input('reason')
-
-    if (!username) {
-      return response.status(400).json({
-        status: 'error',
-        message: "Le nom d'utilisateur est requis",
-      })
-    }
+    const payload = await request.validateUsing(giveRewardValidator)
 
     const respect = await Respect.create({
-      username: username,
-      reason: reason || null,
+      username: payload.username,
+      reason: payload.reason ?? null,
     })
 
     return response.status(201).json({
       status: 'success',
-      message: 'Respect donné avec succès',
+      message: 'Respect given',
       data: respect,
     })
   }

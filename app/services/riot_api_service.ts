@@ -4,6 +4,7 @@
  */
 
 import env from '#start/env'
+import logger from '@adonisjs/core/services/logger'
 
 export type RiotRegion =
   | 'euw1'
@@ -18,6 +19,29 @@ export type RiotRegion =
   | 'ru'
   | 'tr1'
 export type RiotPlatform = 'europe' | 'americas' | 'asia' | 'sea'
+
+export class RiotApiError extends Error {
+  readonly statusCode: number
+  readonly publicMessage: string
+
+  constructor(statusCode: number, rawBody: string) {
+    const publicMessage = RiotApiError.statusToMessage(statusCode)
+    super(publicMessage)
+    this.name = 'RiotApiError'
+    this.statusCode = statusCode
+    this.publicMessage = publicMessage
+    // Raw body kept on the error for server-side logs only — never serialized to client.
+    Object.defineProperty(this, 'rawBody', { value: rawBody, enumerable: false })
+  }
+
+  private static statusToMessage(status: number): string {
+    if (status === 404) return 'Not found'
+    if (status === 401 || status === 403) return 'Riot API authentication failed'
+    if (status === 429) return 'Riot API rate limit exceeded'
+    if (status >= 500) return 'Riot API is unavailable'
+    return 'Riot API request failed'
+  }
+}
 
 export default class RiotApiService {
   private apiKey: string
@@ -55,11 +79,12 @@ export default class RiotApiService {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Riot API Error (${response.status}): ${error}`)
+      const body = await response.text()
+      logger.warn({ url, status: response.status, body }, 'Riot API request failed')
+      throw new RiotApiError(response.status, body)
     }
 
-    return response.json()
+    return response.json() as Promise<T>
   }
 
   /**
@@ -72,23 +97,6 @@ export default class RiotApiService {
       puuid: string
       gameName: string
       tagLine: string
-    }>(url)
-  }
-
-  /**
-   * Récupère les informations d'un joueur par son nom d'invocateur
-   * Note: Cette méthode est dépréciée pour certaines régions, utilisez getAccountByRiotId à la place
-   */
-  async getSummonerByName(summonerName: string) {
-    const url = `${this.baseUrl}/lol/summoner/v4/summoners/by-name/${encodeURIComponent(summonerName)}`
-    return this.makeRequest<{
-      id: string
-      accountId: string
-      puuid: string
-      name: string
-      profileIconId: number
-      revisionDate: number
-      summonerLevel: number
     }>(url)
   }
 
@@ -223,13 +231,11 @@ export default class RiotApiService {
    * Note: Utilise Data Dragon car l'API ne fournit pas directement les infos de champions
    */
   async getChampionById(championId: number) {
-    // Utilise Data Dragon pour récupérer les infos des champions
-    const version = await this.getLatestVersion()
-    const url = `https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/champion.json`
-    const data = await fetch(url).then((r) => r.json())
+    const data = await this.fetchDataDragon<{ data: Record<string, any> }>(
+      `data/fr_FR/champion.json`
+    )
 
-    // Trouve le champion par son ID
-    for (const [key, champion] of Object.entries(data.data) as any) {
+    for (const champion of Object.values(data.data)) {
       if (parseInt(champion.key) === championId) {
         return champion
       }
@@ -242,9 +248,9 @@ export default class RiotApiService {
    * Récupère tous les champions
    */
   async getAllChampions() {
-    const version = await this.getLatestVersion()
-    const url = `https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/champion.json`
-    const data = await fetch(url).then((r) => r.json())
+    const data = await this.fetchDataDragon<{ data: Record<string, any> }>(
+      `data/fr_FR/champion.json`
+    )
     return data.data
   }
 
@@ -252,9 +258,9 @@ export default class RiotApiService {
    * Récupère les détails complets d'un champion
    */
   async getChampionDetails(championName: string) {
-    const version = await this.getLatestVersion()
-    const url = `https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/champion/${championName}.json`
-    const data = await fetch(url).then((r) => r.json())
+    const data = await this.fetchDataDragon<{ data: Record<string, any> }>(
+      `data/fr_FR/champion/${championName}.json`
+    )
     return data.data[championName]
   }
 
@@ -262,8 +268,8 @@ export default class RiotApiService {
    * Récupère la dernière version de Data Dragon
    */
   async getLatestVersion(): Promise<string> {
-    const url = 'https://ddragon.leagueoflegends.com/api/versions.json'
-    const versions = await fetch(url).then((r) => r.json())
+    const url = `${RiotApiService.DDRAGON_BASE}/api/versions.json`
+    const versions = (await fetch(url).then((r) => r.json())) as string[]
     return versions[0]
   }
 
@@ -272,14 +278,14 @@ export default class RiotApiService {
    */
   async getChampionIcon(championName: string): Promise<string> {
     const version = await this.getLatestVersion()
-    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${championName}.png`
+    return `${RiotApiService.DDRAGON_BASE}/cdn/${version}/img/champion/${championName}.png`
   }
 
   /**
    * Récupère l'URL du splash art d'un champion
    */
   getChampionSplash(championName: string, skinNum: number = 0): string {
-    return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${championName}_${skinNum}.jpg`
+    return `${RiotApiService.DDRAGON_BASE}/cdn/img/champion/splash/${championName}_${skinNum}.jpg`
   }
 
   /**
@@ -287,39 +293,24 @@ export default class RiotApiService {
    */
   async getItemIcon(itemId: number): Promise<string> {
     const version = await this.getLatestVersion()
-    return `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${itemId}.png`
+    return `${RiotApiService.DDRAGON_BASE}/cdn/${version}/img/item/${itemId}.png`
   }
 
   /**
    * Récupère tous les objets du jeu
    */
   async getAllItems() {
-    const version = await this.getLatestVersion()
-    const url = `https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/item.json`
-    const data = await fetch(url).then((r) => r.json())
+    const data = await this.fetchDataDragon<{ data: Record<string, any> }>(
+      `data/fr_FR/item.json`
+    )
     return data.data
   }
 
-  /**
-   * Récupère les builds recommandés pour un champion (fictif, à adapter selon vos besoins)
-   */
-  async getChampionBuilds(championName: string) {
-    // Ceci est un placeholder
-    // Dans une vraie implémentation, vous utiliseriez une API tierce comme:
-    // - U.GG API
-    // - OP.GG API
-    // - Ou votre propre base de données de builds
-    return {
-      champion: championName,
-      builds: [
-        {
-          name: 'Build classique',
-          role: 'TOP',
-          items: [],
-          runes: [],
-          spells: [],
-        },
-      ],
-    }
+  private static readonly DDRAGON_BASE = 'https://ddragon.leagueoflegends.com'
+
+  private async fetchDataDragon<T>(path: string): Promise<T> {
+    const version = await this.getLatestVersion()
+    const url = `${RiotApiService.DDRAGON_BASE}/cdn/${version}/${path}`
+    return (await fetch(url).then((r) => r.json())) as T
   }
 }

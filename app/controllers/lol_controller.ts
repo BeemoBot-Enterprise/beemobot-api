@@ -4,7 +4,19 @@
  */
 
 import { HttpContext } from '@adonisjs/core/http'
-import RiotApiService, { RiotRegion, RiotPlatform } from '#services/riot_api_service'
+import RiotApiService, {
+  RiotRegion,
+  RiotPlatform,
+  RiotApiError,
+} from '#services/riot_api_service'
+
+function sanitizeError(error: unknown): { status: number; message: string } {
+  if (error instanceof RiotApiError) {
+    const status = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : 400
+    return { status, message: error.publicMessage }
+  }
+  return { status: 500, message: 'Internal server error' }
+}
 
 export default class LolController {
   /**
@@ -75,10 +87,8 @@ export default class LolController {
         tagLine: account.tagLine,
       })
     } catch (error) {
-      return response.status(404).json({
-        error: 'summoner_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'summoner_not_found', message })
     }
   }
 
@@ -109,10 +119,8 @@ export default class LolController {
         ranks: rank,
       })
     } catch (error) {
-      return response.status(404).json({
-        error: 'rank_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'rank_not_found', message })
     }
   }
 
@@ -156,10 +164,8 @@ export default class LolController {
         masteries: masteriesWithNames,
       })
     } catch (error) {
-      return response.status(404).json({
-        error: 'masteries_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'masteries_not_found', message })
     }
   }
 
@@ -279,10 +285,8 @@ export default class LolController {
         totalMatches: matchIds.length,
       })
     } catch (error) {
-      return response.status(404).json({
-        error: 'profile_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'profile_not_found', message })
     }
   }
 
@@ -316,10 +320,8 @@ export default class LolController {
         count: matchIds.length,
       })
     } catch (error) {
-      return response.status(404).json({
-        error: 'matches_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'matches_not_found', message })
     }
   }
 
@@ -336,10 +338,8 @@ export default class LolController {
 
       return response.json(match)
     } catch (error) {
-      return response.status(404).json({
-        error: 'match_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'match_not_found', message })
     }
   }
 
@@ -357,10 +357,8 @@ export default class LolController {
         count: Object.keys(champions).length,
       })
     } catch (error) {
-      return response.status(500).json({
-        error: 'champions_fetch_failed',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'champions_fetch_failed', message })
     }
   }
 
@@ -375,10 +373,8 @@ export default class LolController {
 
       return response.json(champion)
     } catch (error) {
-      return response.status(404).json({
-        error: 'champion_not_found',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'champion_not_found', message })
     }
   }
 
@@ -396,10 +392,8 @@ export default class LolController {
         count: Object.keys(items).length,
       })
     } catch (error) {
-      return response.status(500).json({
-        error: 'items_fetch_failed',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'items_fetch_failed', message })
     }
   }
 
@@ -416,10 +410,8 @@ export default class LolController {
         version,
       })
     } catch (error) {
-      return response.status(500).json({
-        error: 'version_fetch_failed',
-        message: error.message,
-      })
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'version_fetch_failed', message })
     }
   }
 }

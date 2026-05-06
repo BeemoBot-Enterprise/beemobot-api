@@ -29,10 +29,6 @@ router.get('/auth/discord/redirect', [AuthController, 'redirectToDiscord'])
 router.get('/auth/discord/callback', [AuthController, 'discordCallback'])
 router.get('/auth/', [AuthController, 'discordCallback'])
 
-// Routes Riot OAuth (désactivées pour le moment)
-// router.get('/auth/riot/redirect', [AuthController, 'redirectToRiot'])
-// router.get('/auth/riot/callback', [AuthController, 'riotCallback'])
-
 // Routes pour le bot Discord (sans authentification)
 router.post('/game/shroom', [GameController, 'giveShroom'])
 router.post('/game/respect', [GameController, 'giveRespect'])

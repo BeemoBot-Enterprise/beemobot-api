@@ -19,15 +19,6 @@ export default class AuthController {
     return await this.authService.handleDiscordCallback({ ally, response })
   }
 
-  public async redirectToRiot({ ally }: HttpContext) {
-    return ally.use('riot').redirect()
-  }
-
-  public async riotCallback({ ally, response }: HttpContext) {
-    // @ts-ignore
-    return await this.authService.handleRiotCallback({ ally, response })
-  }
-
   public async generateAccessToken({ response }: HttpContext, user: User) {
     // @ts-ignore
     return await this.authService.handleGenerateAccessToken({ response }, user)
