@@ -22,6 +22,7 @@ const ProfileController = () => import('#controllers/profile_controller')
 const EconomyController = () => import('#controllers/economy_controller')
 const LeaderboardController = () => import('#controllers/leaderboard_controller')
 const ShopController = () => import('#controllers/shop_controller')
+const AdminController = () => import('#controllers/admin_controller')
 
 router.get('/', async () => {
   return {
@@ -60,6 +61,10 @@ router.get('/leaderboard', [LeaderboardController, 'list'])
 router.get('/shop', [ShopController, 'list'])
 router.get('/shop/owned', [ShopController, 'owned']).use(middleware.auth())
 router.post('/shop/purchase', [ShopController, 'purchase']).use(middleware.auth())
+
+// Routes admin (server-to-server, bot only)
+router.get('/admin/guild/:guildId', [AdminController, 'getGuild'])
+router.post('/admin/guild/:guildId', [AdminController, 'updateGuild'])
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
