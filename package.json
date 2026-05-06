@@ -77,7 +77,10 @@
   "pnpm": {
     "overrides": {
       "strtok3": "8.0.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@swc/core"
+    ]
   },
   "prettier": "@adonisjs/prettier-config"
 }
