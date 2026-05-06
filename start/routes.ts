@@ -48,6 +48,8 @@ router.get('/profile/:puuid', [ProfileController, 'show'])
 router
   .get('/economy/balance', [EconomyController, 'balance'])
   .use([middleware.auth(), middleware.dailyHoney()])
+router.post('/economy/spend', [EconomyController, 'spend']).use(middleware.auth())
+router.post('/economy/credit', [EconomyController, 'credit'])
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])

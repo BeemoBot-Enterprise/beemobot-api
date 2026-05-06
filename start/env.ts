@@ -57,4 +57,11 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   WEBAPP_URL: Env.schema.string(),
   ALLOWED_ORIGINS: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Internal service-to-service shared secret
+  |----------------------------------------------------------
+  */
+  INTERNAL_API_KEY: Env.schema.string(),
 })
