@@ -9,6 +9,16 @@ import HoneyService from '#services/honey_service'
 import User from '#models/user'
 
 export default class ProfileController {
+  async me({ auth, response }: HttpContext) {
+    const user = auth.user!
+    return response.json({
+      discordId: user.discordId,
+      gameName: user.riotGameName,
+      tagLine: user.riotTagLine,
+      linked: !!user.linkedAt,
+    })
+  }
+
   async show({ params, response }: HttpContext) {
     const puuid = params.puuid
 

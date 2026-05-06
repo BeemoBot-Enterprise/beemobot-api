@@ -40,6 +40,7 @@ router.get('/rep/eligible', [RepController, 'eligible'])
 router.post('/rep/give', [RepController, 'give'])
 
 // Routes profil public
+router.get('/profile/me', [ProfileController, 'me']).use(middleware.auth())
 router.get('/profile/:puuid', [ProfileController, 'show'])
 
 // Routes économie (authentification requise)
