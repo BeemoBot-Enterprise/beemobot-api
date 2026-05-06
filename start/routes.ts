@@ -20,6 +20,7 @@ const GameController = () => import('#controllers/game_controller')
 const LolController = () => import('#controllers/lol_controller')
 const RepController = () => import('#controllers/rep_controller')
 const ProfileController = () => import('#controllers/profile_controller')
+const EconomyController = () => import('#controllers/economy_controller')
 
 router.get('/', async () => {
   return {
@@ -48,6 +49,9 @@ router.post('/rep/give', [RepController, 'give'])
 
 // Routes profil public
 router.get('/profile/:puuid', [ProfileController, 'show'])
+
+// Routes économie (authentification requise)
+router.get('/economy/balance', [EconomyController, 'balance']).use(middleware.auth())
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
