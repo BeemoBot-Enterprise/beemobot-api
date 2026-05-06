@@ -21,6 +21,7 @@ const RepController = () => import('#controllers/rep_controller')
 const ProfileController = () => import('#controllers/profile_controller')
 const EconomyController = () => import('#controllers/economy_controller')
 const LeaderboardController = () => import('#controllers/leaderboard_controller')
+const ShopController = () => import('#controllers/shop_controller')
 
 router.get('/', async () => {
   return {
@@ -54,6 +55,11 @@ router.post('/economy/credit', [EconomyController, 'credit'])
 
 // Leaderboard
 router.get('/leaderboard', [LeaderboardController, 'list'])
+
+// Shop cosmetics
+router.get('/shop', [ShopController, 'list'])
+router.get('/shop/owned', [ShopController, 'owned']).use(middleware.auth())
+router.post('/shop/purchase', [ShopController, 'purchase']).use(middleware.auth())
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
