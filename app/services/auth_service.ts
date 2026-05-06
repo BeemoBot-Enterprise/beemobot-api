@@ -52,7 +52,7 @@ export default class AuthService {
       const token = await User.accessTokens.create(user)
 
       return response.redirect(
-        `${env.get('WEBAPP_URL')}/profile?token=${token.value!.release()}`
+        `${env.get('WEBAPP_URL')}/auth/callback?token=${token.value!.release()}`
       )
     } catch (error) {
       logger.error({ err: error }, 'Discord OAuth callback failed')

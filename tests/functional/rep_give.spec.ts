@@ -54,4 +54,23 @@ test.group('POST /rep/give', (group) => {
     const honey = await HoneyLedgerEntry.findBy('userPuuid', 'r'.repeat(78))
     assert.equal(honey?.delta, 10)
   })
+
+  test('shroom credits 5 honey (not 10)', async ({ client, assert }) => {
+    await User.create({
+      discordId: 'd2',
+      email: 'b@b.fr',
+      username: 'tester2',
+      riotPuuid: 'g'.repeat(78),
+      linkedAt: DateTime.now(),
+    })
+    const response = await client.post('/rep/give').json({
+      giverDiscordId: 'd2',
+      receiverPuuid: 's'.repeat(78),
+      matchId: 'EUW1_2',
+      type: 'shroom',
+    })
+    response.assertStatus(201)
+    const honey = await HoneyLedgerEntry.findBy('userPuuid', 's'.repeat(78))
+    assert.equal(honey?.delta, 5)
+  })
 })
