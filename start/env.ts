@@ -52,10 +52,16 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
-  | Variables for configuring Riot OAuth (optionnelles)
+  | Web app target (post-OAuth redirect) and CORS whitelist
   |----------------------------------------------------------
   */
-  RIOT_CLIENT_ID: Env.schema.string.optional(),
-  RIOT_CLIENT_SECRET: Env.schema.string.optional(),
-  RIOT_CALLBACK_URL: Env.schema.string.optional(),
+  WEBAPP_URL: Env.schema.string(),
+  ALLOWED_ORIGINS: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Internal service-to-service shared secret
+  |----------------------------------------------------------
+  */
+  INTERNAL_API_KEY: Env.schema.string(),
 })

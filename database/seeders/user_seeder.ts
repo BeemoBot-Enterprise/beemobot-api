@@ -6,11 +6,12 @@
 import User from '#models/user'
 import { BaseSeeder } from '@adonisjs/lucid/seeders'
 import { UserFactory } from '#database/factories/index'
+import logger from '@adonisjs/core/services/logger'
 
 export default class UserSeeder extends BaseSeeder {
   async run() {
     const userData = {
-      email: 'john.doe@beemobpt-entreprise.fr',
+      email: 'john.doe@beemobot-enterprise.fr',
       username: 'John Doe',
     }
 
@@ -18,9 +19,9 @@ export default class UserSeeder extends BaseSeeder {
 
     try {
       await User.create(userData)
-      console.log('Utilisateur créé avec succès :', userData.email)
+      logger.info({ email: userData.email }, 'Demo user created')
     } catch (error) {
-      console.error("Erreur lors de la création de l'utilisateur :", error)
+      logger.error({ err: error }, 'Failed to create demo user')
     }
   }
 }

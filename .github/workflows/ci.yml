@@ -1,0 +1,52 @@
+name: api-ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: development
+      TZ: UTC
+      PORT: 3333
+      HOST: localhost
+      LOG_LEVEL: info
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ""
+      DB_DATABASE: postgres
+      DISCORD_CLIENT_ID: ci-dummy
+      DISCORD_CLIENT_SECRET: ci-dummy
+      DISCORD_CALLBACK_URL: http://localhost:3333/auth/discord/callback
+      RIOT_API_KEY: ci-dummy
+      WEBAPP_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000
+      INTERNAL_API_KEY: ci-dummy
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --no-frozen-lockfile
+      - name: Generate APP_KEY
+        run: echo "APP_KEY=$(openssl rand -base64 32)" >> $GITHUB_ENV
+      - run: node ace migration:run
+      - run: pnpm typecheck
+      - run: node ace test functional

@@ -48,4 +48,5 @@ router.use([
  */
 export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
+  dailyHoney: () => import('#middleware/daily_honey_middleware'),
 })

@@ -40,6 +40,12 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare riotTagLine: string | null
 
+  @column.dateTime()
+  declare linkedAt: DateTime | null
+
+  @column.dateTime()
+  declare lastDailyAt: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
