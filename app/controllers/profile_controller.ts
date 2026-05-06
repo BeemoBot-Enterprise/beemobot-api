@@ -13,6 +13,7 @@ export default class ProfileController {
     const user = auth.user!
     return response.json({
       discordId: user.discordId,
+      puuid: user.riotPuuid,
       gameName: user.riotGameName,
       tagLine: user.riotTagLine,
       linked: !!user.linkedAt,
