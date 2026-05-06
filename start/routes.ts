@@ -16,7 +16,6 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
-const GameController = () => import('#controllers/game_controller')
 const LolController = () => import('#controllers/lol_controller')
 const RepController = () => import('#controllers/rep_controller')
 const ProfileController = () => import('#controllers/profile_controller')
@@ -35,13 +34,6 @@ router.get('/auth/', [AuthController, 'discordCallback'])
 
 // Routes authentifiées (token requis)
 router.post('/auth/link', [AuthController, 'linkRiot']).use(middleware.auth())
-
-// Routes pour le bot Discord (sans authentification)
-router.post('/game/shroom', [GameController, 'giveShroom'])
-router.post('/game/respect', [GameController, 'giveRespect'])
-router.get('/game/stats/:username', [GameController, 'getUserStats'])
-router.get('/game/top/shrooms', [GameController, 'getTopShrooms'])
-router.get('/game/top/respects', [GameController, 'getTopRespects'])
 
 // Routes rep-system (bot uses Discord ID lookup, no auth middleware)
 router.get('/rep/eligible', [RepController, 'eligible'])
