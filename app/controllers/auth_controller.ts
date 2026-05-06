@@ -19,6 +19,11 @@ export default class AuthController {
     return await this.authService.handleDiscordCallback({ ally, response })
   }
 
+  public async linkRiot(ctx: HttpContext) {
+    // @ts-ignore
+    return await this.authService.linkRiotAccount(ctx)
+  }
+
   public async generateAccessToken({ response }: HttpContext, user: User) {
     // @ts-ignore
     return await this.authService.handleGenerateAccessToken({ response }, user)

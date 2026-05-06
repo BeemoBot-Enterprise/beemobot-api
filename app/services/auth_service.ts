@@ -7,6 +7,9 @@ import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
+import { linkRiotValidator } from '#validators/auth'
+import RiotApiService from '#services/riot_api_service'
+import { DateTime } from 'luxon'
 
 export default class AuthService {
   public async handleDiscordCallback({ ally, response }: HttpContext) {
@@ -58,6 +61,32 @@ export default class AuthService {
         message: 'An error occurred during authentication',
       })
     }
+  }
+
+  public async linkRiotAccount({
+    request,
+    response,
+    auth,
+  }: HttpContext) {
+    const payload = await request.validateUsing(linkRiotValidator)
+    const user = auth.user
+    if (!user) {
+      return response.status(401).json({ error: 'unauthenticated' })
+    }
+    const riot = new RiotApiService(payload.region)
+    const account = await riot.getAccountByRiotId(payload.gameName, payload.tagLine)
+
+    user.riotPuuid = account.puuid
+    user.riotGameName = account.gameName
+    user.riotTagLine = account.tagLine
+    user.linkedAt = DateTime.now()
+    await user.save()
+
+    return response.json({
+      puuid: account.puuid,
+      gameName: account.gameName,
+      tagLine: account.tagLine,
+    })
   }
 
   public async handleGenerateAccessToken({ response }: HttpContext, user: User) {

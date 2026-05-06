@@ -13,6 +13,7 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
 const GameController = () => import('#controllers/game_controller')
@@ -28,6 +29,9 @@ router.get('/', async () => {
 router.get('/auth/discord/redirect', [AuthController, 'redirectToDiscord'])
 router.get('/auth/discord/callback', [AuthController, 'discordCallback'])
 router.get('/auth/', [AuthController, 'discordCallback'])
+
+// Routes authentifiées (token requis)
+router.post('/auth/link', [AuthController, 'linkRiot']).use(middleware.auth())
 
 // Routes pour le bot Discord (sans authentification)
 router.post('/game/shroom', [GameController, 'giveShroom'])
