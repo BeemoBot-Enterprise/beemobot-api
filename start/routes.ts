@@ -18,6 +18,7 @@ import { middleware } from '#start/kernel'
 const AuthController = () => import('#controllers/auth_controller')
 const GameController = () => import('#controllers/game_controller')
 const LolController = () => import('#controllers/lol_controller')
+const RepController = () => import('#controllers/rep_controller')
 
 router.get('/', async () => {
   return {
@@ -39,6 +40,10 @@ router.post('/game/respect', [GameController, 'giveRespect'])
 router.get('/game/stats/:username', [GameController, 'getUserStats'])
 router.get('/game/top/shrooms', [GameController, 'getTopShrooms'])
 router.get('/game/top/respects', [GameController, 'getTopRespects'])
+
+// Routes rep-system (bot uses Discord ID lookup, no auth middleware)
+router.get('/rep/eligible', [RepController, 'eligible'])
+router.post('/rep/give', [RepController, 'give'])
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
