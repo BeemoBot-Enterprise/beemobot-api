@@ -3,10 +3,24 @@
  * All rights reserved.
  */
 
+import { DateTime } from 'luxon'
 import HoneyLedgerEntry, { HoneyReason } from '#models/honey_ledger_entry'
 import db from '@adonisjs/lucid/services/db'
+import User from '#models/user'
+
+const DAILY_HONEY = 20
 
 export default class HoneyService {
+  static async tryDaily(user: User): Promise<boolean> {
+    if (!user.riotPuuid) return false
+    const today = DateTime.now().toISODate()
+    if (user.lastDailyAt && user.lastDailyAt.toISODate() === today) return false
+    await this.credit(user.riotPuuid, DAILY_HONEY, 'daily_login', { date: today })
+    user.lastDailyAt = DateTime.fromISO(today!)
+    await user.save()
+    return true
+  }
+
   static async credit(
     userPuuid: string,
     amount: number,

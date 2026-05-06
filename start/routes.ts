@@ -45,7 +45,9 @@ router.get('/profile/by-discord/:id', [ProfileController, 'byDiscord'])
 router.get('/profile/:puuid', [ProfileController, 'show'])
 
 // Routes économie (authentification requise)
-router.get('/economy/balance', [EconomyController, 'balance']).use(middleware.auth())
+router
+  .get('/economy/balance', [EconomyController, 'balance'])
+  .use([middleware.auth(), middleware.dailyHoney()])
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
