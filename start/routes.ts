@@ -20,6 +20,7 @@ const LolController = () => import('#controllers/lol_controller')
 const RepController = () => import('#controllers/rep_controller')
 const ProfileController = () => import('#controllers/profile_controller')
 const EconomyController = () => import('#controllers/economy_controller')
+const LeaderboardController = () => import('#controllers/leaderboard_controller')
 
 router.get('/', async () => {
   return {
@@ -50,6 +51,9 @@ router
   .use([middleware.auth(), middleware.dailyHoney()])
 router.post('/economy/spend', [EconomyController, 'spend']).use(middleware.auth())
 router.post('/economy/credit', [EconomyController, 'credit'])
+
+// Leaderboard
+router.get('/leaderboard', [LeaderboardController, 'list'])
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
