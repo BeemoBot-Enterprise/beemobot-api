@@ -260,6 +260,7 @@ export default class RiotApiService {
    * Throws RiotApiError(404) si le joueur n'est pas en game.
    */
   async getActiveGameByPuuid(puuid: string) {
+    // Riot kept the 'by-summoner' path segment for Spectator v5; the parameter is the PUUID.
     const url = `${this.baseUrl}/lol/spectator/v5/active-games/by-summoner/${puuid}`
     return this.makeRequest<{
       gameId: number
