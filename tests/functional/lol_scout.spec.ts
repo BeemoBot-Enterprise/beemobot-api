@@ -89,4 +89,40 @@ test.group('GET /lol/scout/by-discord/:id', (group) => {
     assert.lengthOf(body.teams['200'], 1)
     assert.exists(body.predictionWinPct)
   })
+
+  test('returns 500 self_not_in_game when user puuid is missing from participants', async ({ client, assert }) => {
+    await User.create({
+      discordId: 'D4', username: 'u',
+      riotPuuid: 'P_GHOST', riotGameName: 'Nunch', riotTagLine: 'N7789',
+      linkedAt: DateTime.now(),
+    })
+    // @ts-expect-error monkey-patch
+    RiotApiService.prototype.makeRequest = async (url: string) => {
+      if (url.includes('/lol/spectator/v5/active-games')) {
+        // P_GHOST is NOT in participants — only P_OTHER is.
+        return {
+          gameId: 1, gameStartTime: 0, gameLength: 60,
+          gameMode: 'CLASSIC', gameType: 'MATCHED_GAME',
+          gameQueueConfigId: 420, mapId: 11,
+          participants: [
+            { puuid: 'P_OTHER', championId: 1, teamId: 100, summonerId: 'S1', spell1Id: 4, spell2Id: 7, perks: { perkIds: [], perkStyle: 0, perkSubStyle: 0 } },
+          ],
+          bannedChampions: [],
+        }
+      }
+      if (url.includes('/lol/league/v4')) return []
+      if (url.includes('/lol/champion-mastery/v4')) return []
+      if (url.includes('/lol/match/v5/matches/by-puuid')) return []
+      if (url.includes('versions.json')) return ['14.1.1']
+      if (url.includes('/cdn/') && url.includes('champion.json')) {
+        return { data: { Annie: { key: '1', name: 'Annie' } } }
+      }
+      throw new Error('unexpected URL: ' + url)
+    }
+    const response = await client.get('/lol/scout/by-discord/D4').setup((req) => {
+      req.request.ok(() => true)
+    })
+    response.assertStatus(500)
+    assert.equal(response.body().error, 'self_not_in_game')
+  })
 })

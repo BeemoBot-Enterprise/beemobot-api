@@ -555,13 +555,36 @@ export default class LolController {
     }
 
     // Build a championId → championName map from Data Dragon (cached).
-    const champions = await riot.getAllChampions()
-    const championNameById: Record<number, string> = {}
-    for (const c of Object.values(champions) as any[]) {
-      championNameById[parseInt(c.key, 10)] = c.name
+    let championNameById: Record<number, string>
+    try {
+      const champions = await riot.getAllChampions()
+      championNameById = {}
+      for (const c of Object.values(champions) as any[]) {
+        championNameById[parseInt(c.key, 10)] = c.name
+      }
+    } catch (err) {
+      if (err instanceof RiotApiError) {
+        return response.status(503).json({
+          error: 'riot_api_error',
+          message: err.publicMessage,
+        })
+      }
+      throw err
     }
 
-    const result = await LiveScoutService.enrich(riot, active, user.riotPuuid, championNameById)
+    let result
+    try {
+      result = await LiveScoutService.enrich(riot, active, user.riotPuuid, championNameById)
+    } catch (err) {
+      // LiveScoutService.enrich throws if user.riotPuuid is not in active.participants.
+      if (err instanceof Error && err.message.includes('not found in active game participants')) {
+        return response.status(500).json({
+          error: 'self_not_in_game',
+          message: 'User puuid not found in active game participants. Possible Riot data inconsistency.',
+        })
+      }
+      throw err
+    }
     return response.json(result)
   }
 }
