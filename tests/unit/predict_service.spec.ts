@@ -4,10 +4,10 @@
  */
 
 import { test } from '@japa/runner'
-import PredictService from '#services/predict_service'
+import PredictService, { type RankInput } from '#services/predict_service'
 
-const D2_RANK = { tier: 'DIAMOND', division: 'II', hotStreak: false, masteryPoints: 0 }
-const G4_RANK = { tier: 'GOLD', division: 'IV', hotStreak: false, masteryPoints: 0 }
+const D2_RANK: RankInput = { tier: 'DIAMOND', division: 'II', hotStreak: false, masteryPoints: 0 }
+const G4_RANK: RankInput = { tier: 'GOLD', division: 'IV', hotStreak: false, masteryPoints: 0 }
 const UNRANKED = null
 
 test.group('PredictService.rankScore', () => {
@@ -53,5 +53,11 @@ test.group('PredictService.explain', () => {
   })
   test('returns disadvantage for diff < -4', ({ assert }) => {
     assert.match(PredictService.explain(-6), /désavantage/i)
+  })
+  test('returns "nettement favorisé" for diff > 8', ({ assert }) => {
+    assert.match(PredictService.explain(10), /nettement favorisé/i)
+  })
+  test('returns "nettement plus forte" for diff < -8', ({ assert }) => {
+    assert.match(PredictService.explain(-10), /nettement plus forte/i)
   })
 })
