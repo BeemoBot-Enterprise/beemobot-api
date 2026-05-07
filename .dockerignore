@@ -1,0 +1,29 @@
+node_modules
+build
+tmp
+.git
+.github
+.claude
+.vscode
+.idea
+.fleet
+.DS_Store
+.editorconfig
+
+# Local env / secrets — must be injected by Coolify
+.env
+.env.*
+!.env.example
+
+# Local SQLite leftover
+database.sqlite
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+
+# Docs (not needed in image)
+*.md
+docs
+COPYRIGHT_SUMMARY.txt

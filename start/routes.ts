@@ -13,6 +13,7 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import db from '@adonisjs/lucid/services/db'
 import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
@@ -27,6 +28,15 @@ const AdminController = () => import('#controllers/admin_controller')
 router.get('/', async () => {
   return {
     hello: 'world',
+  }
+})
+
+router.get('/health', async ({ response }) => {
+  try {
+    await db.rawQuery('SELECT 1')
+    return { status: 'ok', db: 'up' }
+  } catch {
+    return response.status(503).json({ status: 'error', db: 'down' })
   }
 })
 

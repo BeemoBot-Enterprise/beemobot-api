@@ -17,6 +17,8 @@ const dbConfig = defineConfig({
         user: env.get('DB_USER'),
         password: env.get('DB_PASSWORD', ''),
         database: env.get('DB_DATABASE'),
+        // Neon and most managed PG providers require TLS
+        ssl: env.get('DB_SSL', false) ? { rejectUnauthorized: false } : false,
       },
       migrations: {
         naturalSort: true,
