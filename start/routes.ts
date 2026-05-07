@@ -104,3 +104,4 @@ router.get('/lol/summoner/:summonerName/matches', [LolController, 'getMatchHisto
 router.get('/lol/match/:matchId', [LolController, 'getMatchDetails'])
 router.get('/lol/debrief/by-discord/:id', [LolController, 'debriefByDiscord'])
 router.get('/lol/predict/by-discord/:id', [LolController, 'predictByDiscord'])
+router.get('/lol/scout/by-discord/:id', [LolController, 'scoutByDiscord'])

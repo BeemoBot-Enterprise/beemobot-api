@@ -13,6 +13,7 @@ import User from '#models/user'
 import DebriefService from '#services/debrief_service'
 import { mapQueueId } from '#services/riot_queue_types'
 import PredictService, { RiotTier, RiotDivision } from '#services/predict_service'
+import LiveScoutService from '#services/live_scout_service'
 
 function sanitizeError(error: unknown): { status: number; message: string } {
   if (error instanceof RiotApiError) {
@@ -530,5 +531,37 @@ export default class LolController {
       winPct: PredictService.predictWinPct(myAvg, oppAvg),
       explanation: PredictService.explain(diff),
     })
+  }
+
+  /**
+   * GET /lol/scout/by-discord/:id
+   * Returns enriched live-game scout data for a player linked via their Discord ID
+   */
+  async scoutByDiscord({ params, response }: HttpContext) {
+    const user = await User.findBy('discordId', params.id)
+    if (!user || !user.riotPuuid) {
+      return response.status(404).json({ error: 'not_linked' })
+    }
+    // TODO: use user.riotRegion when a region column is added to the User model.
+    const riot = new RiotApiService('euw1')
+    let active
+    try {
+      active = await riot.getActiveGameByPuuid(user.riotPuuid)
+    } catch (err) {
+      if (err instanceof RiotApiError && err.statusCode === 404) {
+        return response.status(404).json({ error: 'not_in_game' })
+      }
+      throw err
+    }
+
+    // Build a championId → championName map from Data Dragon (cached).
+    const champions = await riot.getAllChampions()
+    const championNameById: Record<number, string> = {}
+    for (const c of Object.values(champions) as any[]) {
+      championNameById[parseInt(c.key, 10)] = c.name
+    }
+
+    const result = await LiveScoutService.enrich(riot, active, user.riotPuuid, championNameById)
+    return response.json(result)
   }
 }
