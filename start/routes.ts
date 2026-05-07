@@ -24,6 +24,7 @@ const EconomyController = () => import('#controllers/economy_controller')
 const LeaderboardController = () => import('#controllers/leaderboard_controller')
 const ShopController = () => import('#controllers/shop_controller')
 const AdminController = () => import('#controllers/admin_controller')
+const WorkerController = () => import('#controllers/worker_controller')
 
 router.get('/', async () => {
   return {
@@ -78,6 +79,17 @@ router.post('/shop/purchase', [ShopController, 'purchase']).use(middleware.auth(
 // Routes admin (server-to-server, bot only)
 router.get('/admin/guild/:guildId', [AdminController, 'getGuild'])
 router.post('/admin/guild/:guildId', [AdminController, 'updateGuild'])
+
+// Worker endpoints (server-to-server, bot's dm_dispatcher only).
+// All guarded by X-Internal-Key === INTERNAL_API_KEY.
+router
+  .group(() => {
+    router.get('/worker/dm-queue/pending', [WorkerController, 'listPendingDms'])
+    router.post('/worker/dm-queue/:id/sent', [WorkerController, 'markDmSent'])
+    router.post('/worker/dm-queue/:id/failed', [WorkerController, 'markDmFailed'])
+    router.post('/worker/dm-queue/:id/forbidden', [WorkerController, 'markDmForbidden'])
+  })
+  .use(middleware.internalAuth())
 
 // Routes League of Legends (Riot API)
 router.get('/lol/version', [LolController, 'getVersion'])
