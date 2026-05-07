@@ -113,4 +113,25 @@ test.group('GET /lol/predict/by-discord/:id', (group) => {
     response.assertStatus(500)
     assert.equal(response.body().error, 'self_not_in_game')
   })
+
+  test('uses user.riotRegion when constructing Riot URLs', async ({ client, assert }) => {
+    await User.create({
+      discordId: 'D_KR', username: 'u',
+      riotPuuid: 'P_KR', riotGameName: 'Faker', riotTagLine: 'KR1',
+      riotRegion: 'kr',
+      linkedAt: DateTime.now(),
+    })
+    const { RiotApiError } = await import('#services/riot_api_service')
+    let spectatorUrl = ''
+    // @ts-expect-error monkey-patch
+    RiotApiService.prototype.makeRequest = async (url: string) => {
+      if (url.includes('spectator/v5')) {
+        spectatorUrl = url
+        throw new RiotApiError(404, '')
+      }
+      return null
+    }
+    await client.get('/lol/predict/by-discord/D_KR')
+    assert.match(spectatorUrl, /^https:\/\/kr\.api\.riotgames\.com\//)
+  })
 })

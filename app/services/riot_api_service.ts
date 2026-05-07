@@ -60,10 +60,10 @@ export default class RiotApiService {
   constructor(region: RiotRegion = 'euw1') {
     this.apiKey = env.get('RIOT_API_KEY')
     this.baseUrl = `https://${region}.api.riotgames.com`
-    this.platform = this.getPlatformFromRegion(region)
+    this.platform = RiotApiService.getPlatformFromRegion(region)
   }
 
-  private getPlatformFromRegion(region: RiotRegion): RiotPlatform {
+  static getPlatformFromRegion(region: RiotRegion): RiotPlatform {
     const platformMap: Record<RiotRegion, RiotPlatform> = {
       euw1: 'europe',
       eun1: 'europe',

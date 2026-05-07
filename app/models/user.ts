@@ -40,6 +40,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column()
   declare riotTagLine: string | null
 
+  @column()
+  declare riotRegion: string | null
+
   @column.dateTime()
   declare linkedAt: DateTime | null
 

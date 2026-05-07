@@ -457,19 +457,20 @@ export default class LolController {
       return response.status(404).json(payload)
     }
 
-    // TODO: use user.riotRegion when a region column is added to the User model.
-    const riot = new RiotApiService('euw1')
+    const region = (user.riotRegion as RiotRegion | null) ?? 'euw1'
+    const platform = RiotApiService.getPlatformFromRegion(region)
+    const riot = new RiotApiService(region)
 
     let matchIds: string[]
     let match: any
     try {
-      matchIds = await riot.getMatchHistory(user.riotPuuid, 'europe', 0, 1)
+      matchIds = await riot.getMatchHistory(user.riotPuuid, platform, 0, 1)
       if (matchIds.length === 0) {
         const payload = { error: 'no_recent_match' }
         floodSet(cacheKey, payload, 404)
         return response.status(404).json(payload)
       }
-      match = await riot.getMatchDetails(matchIds[0], 'europe')
+      match = await riot.getMatchDetails(matchIds[0], platform)
     } catch (error) {
       const { status, message } = sanitizeError(error)
       return response.status(status).json({ error: 'riot_api_error', message })
@@ -504,8 +505,8 @@ export default class LolController {
       floodSet(cacheKey, payload, 404)
       return response.status(404).json(payload)
     }
-    // TODO: use user.riotRegion when a region column is added to the User model.
-    const riot = new RiotApiService('euw1')
+    const region = (user.riotRegion as RiotRegion | null) ?? 'euw1'
+    const riot = new RiotApiService(region)
     let active
     try {
       active = await riot.getActiveGameByPuuid(user.riotPuuid)
@@ -594,8 +595,9 @@ export default class LolController {
       floodSet(cacheKey, payload, 404)
       return response.status(404).json(payload)
     }
-    // TODO: use user.riotRegion when a region column is added to the User model.
-    const riot = new RiotApiService('euw1')
+    const region = (user.riotRegion as RiotRegion | null) ?? 'euw1'
+    const platform = RiotApiService.getPlatformFromRegion(region)
+    const riot = new RiotApiService(region)
     let active
     try {
       active = await riot.getActiveGameByPuuid(user.riotPuuid)
@@ -628,7 +630,7 @@ export default class LolController {
 
     let result
     try {
-      result = await LiveScoutService.enrich(riot, active, user.riotPuuid, championNameById)
+      result = await LiveScoutService.enrich(riot, active, user.riotPuuid, championNameById, platform)
     } catch (err) {
       // LiveScoutService.enrich throws if user.riotPuuid is not in active.participants.
       if (err instanceof Error && err.message.includes('not found in active game participants')) {

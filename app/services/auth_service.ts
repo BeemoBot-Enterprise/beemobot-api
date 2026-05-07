@@ -264,6 +264,7 @@ export default class AuthService {
     user.riotPuuid = challenge.puuid
     user.riotGameName = challenge.gameName
     user.riotTagLine = challenge.tagLine
+    user.riotRegion = challenge.region
     user.linkedAt = DateTime.now()
     await user.save()
 
@@ -293,6 +294,7 @@ export default class AuthService {
     user.riotPuuid = null
     user.riotGameName = null
     user.riotTagLine = null
+    user.riotRegion = null
     user.linkedAt = null
     await user.save()
     return response.json({ ok: true })
