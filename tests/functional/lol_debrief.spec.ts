@@ -21,8 +21,17 @@ const FIXTURE_PARTICIPANT = {
 }
 
 test.group('GET /lol/debrief/by-discord/:id', (group) => {
+  // @ts-expect-error accessing private method for test teardown
+  const originalMakeRequest = RiotApiService.prototype.makeRequest
+
   group.each.setup(async () => {
     await User.truncate(true)
+  })
+
+  group.each.teardown(() => {
+    // Restore the original makeRequest so prototype patches don't leak.
+    // @ts-expect-error restoring private method after monkey-patch
+    RiotApiService.prototype.makeRequest = originalMakeRequest
   })
 
   test('returns 404 not_linked when no user found', async ({ client, assert }) => {

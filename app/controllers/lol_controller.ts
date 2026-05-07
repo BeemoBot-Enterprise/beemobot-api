@@ -11,6 +11,7 @@ import RiotApiService, {
 } from '#services/riot_api_service'
 import User from '#models/user'
 import DebriefService from '#services/debrief_service'
+import { mapQueueId } from '#services/riot_queue_types'
 
 function sanitizeError(error: unknown): { status: number; message: string } {
   if (error instanceof RiotApiError) {
@@ -426,31 +427,29 @@ export default class LolController {
     if (!user || !user.riotPuuid) {
       return response.status(404).json({ error: 'not_linked' })
     }
+
+    // TODO: use user.riotRegion when a region column is added to the User model.
     const riot = new RiotApiService('euw1')
-    const matchIds = await riot.getMatchHistory(user.riotPuuid, 'europe', 0, 1)
-    if (matchIds.length === 0) {
-      return response.status(404).json({ error: 'no_recent_match' })
+
+    let matchIds: string[]
+    let match: any
+    try {
+      matchIds = await riot.getMatchHistory(user.riotPuuid, 'europe', 0, 1)
+      if (matchIds.length === 0) {
+        return response.status(404).json({ error: 'no_recent_match' })
+      }
+      match = await riot.getMatchDetails(matchIds[0], 'europe')
+    } catch (error) {
+      const { status, message } = sanitizeError(error)
+      return response.status(status).json({ error: 'riot_api_error', message })
     }
-    const matchId = matchIds[0]
-    const match = await riot.getMatchDetails(matchId, 'europe')
+
     const participant = match.info.participants.find((p: any) => p.puuid === user.riotPuuid)
     if (!participant) {
       return response.status(404).json({ error: 'no_recent_match' })
     }
     const queueType = mapQueueId(match.info.queueId)
-    const result = DebriefService.analyze(participant, matchId, match.info.gameDuration, queueType)
+    const result = DebriefService.analyze(participant, matchIds[0], match.info.gameDuration, queueType)
     return response.json(result)
   }
-}
-
-function mapQueueId(queueId: number): string {
-  const map: Record<number, string> = {
-    420: 'RANKED_SOLO_5x5',
-    440: 'RANKED_FLEX_SR',
-    400: 'NORMAL_DRAFT',
-    430: 'NORMAL_BLIND',
-    450: 'ARAM',
-    700: 'CLASH',
-  }
-  return map[queueId] ?? `QUEUE_${queueId}`
 }
