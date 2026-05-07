@@ -68,4 +68,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   INTERNAL_API_KEY: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Background worker (Riot poller) — runs in-process when ENABLE_WORKER=true
+  |----------------------------------------------------------
+  */
+  ENABLE_WORKER: Env.schema.boolean.optional(),
+  WORKER_INTERVAL_S: Env.schema.number.optional(),
 })
