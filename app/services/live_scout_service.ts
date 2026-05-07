@@ -7,6 +7,8 @@ import RiotApiService, { RiotPlatform } from '#services/riot_api_service'
 import PredictService, { RiotTier, RiotDivision } from '#services/predict_service'
 import { mapQueueId } from '#services/riot_queue_types'
 
+export type ActiveGame = Awaited<ReturnType<RiotApiService['getActiveGameByPuuid']>>
+
 export interface ScoutParticipant {
   puuid: string
   championId: number
@@ -83,13 +85,13 @@ export default class LiveScoutService {
 
   static async enrich(
     riot: RiotApiService,
-    activeGame: any,
+    activeGame: ActiveGame,
     selfPuuid: string,
     championNameById: Record<number, string>,
     platform: RiotPlatform = 'europe'
   ): Promise<ScoutResult> {
     const enrichedParticipants: ScoutParticipant[] = await Promise.all(
-      activeGame.participants.map(async (p: any) => {
+      activeGame.participants.map(async (p) => {
         const [rankEntries, masteries, matchIds] = await Promise.all([
           riot.getSummonerRank(p.puuid).catch(() => []),
           riot.getTopChampionMasteries(p.puuid, 5).catch(() => []),
@@ -121,7 +123,10 @@ export default class LiveScoutService {
     for (const p of enrichedParticipants) teams[String(p.teamId) as '100' | '200'].push(p)
 
     const selfP = enrichedParticipants.find((p) => p.puuid === selfPuuid)
-    const selfTeamId = selfP?.teamId ?? 100
+    if (!selfP) {
+      throw new Error(`selfPuuid ${selfPuuid} not found in active game participants`)
+    }
+    const selfTeamId = selfP.teamId
     const opponents = enrichedParticipants.filter((p) => p.teamId !== selfTeamId)
     const topThreats = LiveScoutService.pickThreats(opponents, 1)
 
@@ -136,7 +141,7 @@ export default class LiveScoutService {
       mapId: activeGame.mapId,
       self: {
         puuid: selfPuuid,
-        championName: selfP?.championName ?? 'Unknown',
+        championName: selfP.championName,
         teamId: selfTeamId,
       },
       teams,
@@ -168,5 +173,6 @@ function buildReason(p: ScoutParticipant): string {
 }
 
 function capital(s: string): string {
+  if (!s) return s
   return s[0] + s.slice(1).toLowerCase()
 }
