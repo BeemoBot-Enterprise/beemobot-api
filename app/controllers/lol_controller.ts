@@ -9,6 +9,8 @@ import RiotApiService, {
   RiotPlatform,
   RiotApiError,
 } from '#services/riot_api_service'
+import User from '#models/user'
+import DebriefService from '#services/debrief_service'
 
 function sanitizeError(error: unknown): { status: number; message: string } {
   if (error instanceof RiotApiError) {
@@ -414,4 +416,41 @@ export default class LolController {
       return response.status(status).json({ error: 'version_fetch_failed', message })
     }
   }
+
+  /**
+   * GET /lol/debrief/by-discord/:id
+   * Analyse le dernier match d'un joueur lié via son Discord ID
+   */
+  async debriefByDiscord({ params, response }: HttpContext) {
+    const user = await User.findBy('discordId', params.id)
+    if (!user || !user.riotPuuid) {
+      return response.status(404).json({ error: 'not_linked' })
+    }
+    const riot = new RiotApiService('euw1')
+    const matchIds = await riot.getMatchHistory(user.riotPuuid, 'europe', 0, 1)
+    if (matchIds.length === 0) {
+      return response.status(404).json({ error: 'no_recent_match' })
+    }
+    const matchId = matchIds[0]
+    const match = await riot.getMatchDetails(matchId, 'europe')
+    const participant = match.info.participants.find((p: any) => p.puuid === user.riotPuuid)
+    if (!participant) {
+      return response.status(404).json({ error: 'no_recent_match' })
+    }
+    const queueType = mapQueueId(match.info.queueId)
+    const result = DebriefService.analyze(participant, matchId, match.info.gameDuration, queueType)
+    return response.json(result)
+  }
+}
+
+function mapQueueId(queueId: number): string {
+  const map: Record<number, string> = {
+    420: 'RANKED_SOLO_5x5',
+    440: 'RANKED_FLEX_SR',
+    400: 'NORMAL_DRAFT',
+    430: 'NORMAL_BLIND',
+    450: 'ARAM',
+    700: 'CLASH',
+  }
+  return map[queueId] ?? `QUEUE_${queueId}`
 }
