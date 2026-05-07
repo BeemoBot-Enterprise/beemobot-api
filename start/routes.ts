@@ -13,6 +13,7 @@
 */
 
 import router from '@adonisjs/core/services/router'
+import db from '@adonisjs/lucid/services/db'
 import { middleware } from '#start/kernel'
 
 const AuthController = () => import('#controllers/auth_controller')
@@ -30,13 +31,25 @@ router.get('/', async () => {
   }
 })
 
+router.get('/health', async ({ response }) => {
+  try {
+    await db.rawQuery('SELECT 1')
+    return { status: 'ok', db: 'up' }
+  } catch {
+    return response.status(503).json({ status: 'error', db: 'down' })
+  }
+})
+
 // Routes d'authentification Discord
 router.get('/auth/discord/redirect', [AuthController, 'redirectToDiscord'])
 router.get('/auth/discord/callback', [AuthController, 'discordCallback'])
 router.get('/auth/', [AuthController, 'discordCallback'])
 
 // Routes authentifiées (token requis)
-router.post('/auth/link', [AuthController, 'linkRiot']).use(middleware.auth())
+router.post('/auth/link/preview', [AuthController, 'previewLink']).use(middleware.auth())
+router.post('/auth/link/challenge', [AuthController, 'createLinkChallenge']).use(middleware.auth())
+router.post('/auth/link/verify', [AuthController, 'verifyLinkChallenge']).use(middleware.auth())
+router.post('/auth/unlink', [AuthController, 'unlinkRiot']).use(middleware.auth())
 
 // Routes rep-system (bot uses Discord ID lookup, no auth middleware)
 router.get('/rep/eligible', [RepController, 'eligible'])
