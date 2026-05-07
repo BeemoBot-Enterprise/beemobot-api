@@ -18,6 +18,14 @@ import db from '@adonisjs/lucid/services/db'
 const CHALLENGE_ICON_POOL = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
 const CHALLENGE_TTL_SECONDS = 600 // 10 min
 
+// A "stub" user is a placeholder created by RepService when someone gets shroom'd /
+// respect'd before they've linked: it carries the PUUID + Riot pseudo so leaderboards
+// don't show "Compte non lié", but no discord_id and no linked_at. Stubs never count
+// as owning a Riot account — the link flow merges them into the linker's user.
+function isStubUser(u: User | null | undefined): boolean {
+  return !!u && u.linkedAt === null && !u.discordId
+}
+
 export default class AuthService {
   public async handleDiscordCallback({ ally, response }: HttpContext) {
     try {
@@ -109,8 +117,9 @@ export default class AuthService {
     }
 
     const owner = await User.findBy('riotPuuid', account.puuid)
-    const alreadyLinkedByOther = !!owner && owner.id !== user.id
-    const alreadyLinkedByMe = !!owner && owner.id === user.id
+    const realOwner = isStubUser(owner) ? null : owner
+    const alreadyLinkedByOther = !!realOwner && realOwner.id !== user.id
+    const alreadyLinkedByMe = !!realOwner && realOwner.id === user.id
 
     const phantomRow = await db
       .from('reputation_events')
@@ -148,9 +157,10 @@ export default class AuthService {
       return this.handleRiotError(err, response, payload)
     }
 
-    // Refus si déjà lié à un autre user — même check que dans verify.
+    // Refus si déjà lié à un autre user — même check que dans verify. Les stubs
+    // (créés par RepService pour des unlinked) ne comptent pas comme owner.
     const owner = await User.findBy('riotPuuid', account.puuid)
-    if (owner && owner.id !== user.id) {
+    if (owner && !isStubUser(owner) && owner.id !== user.id) {
       return response.status(409).json({
         error: 'already_linked',
         message: `Ce compte Riot est déjà lié à un autre profil BeemoBot. Si tu penses qu'il a été usurpé, contacte le support.`,
@@ -214,8 +224,10 @@ export default class AuthService {
     }
 
     // Re-check duplicate au moment de la vérif (au cas où quelqu'un d'autre a lié entre temps).
+    // Un stub (créé par un rep avant que le joueur ne lie) n'est pas un owner légitime —
+    // on le supprimera juste avant le save pour libérer la contrainte UNIQUE sur riot_puuid.
     const owner = await User.findBy('riotPuuid', challenge.puuid)
-    if (owner && owner.id !== user.id) {
+    if (owner && !isStubUser(owner) && owner.id !== user.id) {
       await challenge.delete()
       return response.status(409).json({
         error: 'already_linked',
@@ -244,7 +256,11 @@ export default class AuthService {
       })
     }
 
-    // Vérification OK → liaison.
+    // Vérification OK → liaison. Si un stub porte le PUUID, on l'absorbe (delete)
+    // pour libérer la contrainte UNIQUE avant d'écrire sur le user authentifié.
+    if (owner && isStubUser(owner) && owner.id !== user.id) {
+      await owner.delete()
+    }
     user.riotPuuid = challenge.puuid
     user.riotGameName = challenge.gameName
     user.riotTagLine = challenge.tagLine

@@ -6,7 +6,9 @@
 import ReputationEvent, { RepType } from '#models/reputation_event'
 import HoneyService from '#services/honey_service'
 import RiotApiService, { RiotPlatform } from '#services/riot_api_service'
+import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
+import logger from '@adonisjs/core/services/logger'
 
 const HONEY_PER_RESPECT = 10
 const HONEY_PER_SHROOM = 5
@@ -42,8 +44,8 @@ export default class RepService {
   static async giveRep(input: GiveRepInput) {
     const weight = await this.computeWeight(input.giverPuuid)
 
-    return db.transaction(async (trx) => {
-      const event = await ReputationEvent.create(
+    const event = await db.transaction(async (trx) => {
+      const created = await ReputationEvent.create(
         {
           type: input.type,
           giverPuuid: input.giverPuuid,
@@ -63,11 +65,46 @@ export default class RepService {
       // Fix in Phase 2: extend HoneyService.credit to accept an optional trx parameter.
       await HoneyService.credit(input.receiverPuuid, honeyDelta, honeyReason, {
         match_id: input.matchId,
-        rep_event_id: event.id,
+        rep_event_id: created.id,
       })
 
-      return event
+      return created
     })
+
+    // Best-effort: ensure the receiver has a row in `users` so leaderboards can show
+    // their gameName/tagLine instead of "Compte non lié". A "stub" row has no
+    // discord_id and no linked_at — auth_service merges it when the player links.
+    await this.ensureReceiverProfile(input.receiverPuuid)
+
+    return event
+  }
+
+  private static async ensureReceiverProfile(receiverPuuid: string) {
+    const existing = await User.findBy('riotPuuid', receiverPuuid)
+    if (existing) return
+
+    let account
+    try {
+      account = await new RiotApiService('euw1').getAccountByPuuid(receiverPuuid)
+    } catch (err) {
+      logger.warn({ err, puuid: receiverPuuid }, 'rep_service: cannot resolve receiver pseudo')
+      return
+    }
+
+    try {
+      await User.create({
+        username: account.gameName,
+        avatarUrl: null,
+        discordId: null,
+        riotPuuid: receiverPuuid,
+        riotGameName: account.gameName,
+        riotTagLine: account.tagLine,
+        linkedAt: null,
+      })
+    } catch (err: any) {
+      if (err?.code === '23505') return // unique_violation: another tx beat us
+      logger.warn({ err, puuid: receiverPuuid }, 'rep_service: stub user insert failed')
+    }
   }
 
   /**

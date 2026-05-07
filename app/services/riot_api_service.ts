@@ -117,6 +117,19 @@ export default class RiotApiService {
   }
 
   /**
+   * Récupère gameName / tagLine à partir d'un PUUID (Account v1).
+   */
+  async getAccountByPuuid(puuid: string) {
+    const platformUrl = `https://${this.platform}.api.riotgames.com`
+    const url = `${platformUrl}/riot/account/v1/accounts/by-puuid/${encodeURIComponent(puuid)}`
+    return this.makeRequest<{
+      puuid: string
+      gameName: string
+      tagLine: string
+    }>(url)
+  }
+
+  /**
    * Récupère les informations d'un joueur par son PUUID
    */
   async getSummonerByPuuid(puuid: string) {
