@@ -39,6 +39,16 @@ Pour sauter d'un projet à l'autre : `Read /Users/jeremy/Documents/Code/ynov/yda
                        └────────────────┘
 ```
 
+## Déploiement (prod)
+
+Tous les services tournent sur **Coolify** :
+
+| Service | URL prod | Stack hébergée |
+|---|---|---|
+| **api** | `https://api.beemobot.fr` | AdonisJS 6 (Node) |
+| **bot** | `https://bee.beemobot.fr` | Python Discord bot |
+| **webapp** | `https://beemobot.fr` | Next.js 15 |
+
 ## API — endpoints publics (résumé)
 
 Base URL : `http://localhost:3333` (dev) · `https://api.beemobot.fr` (prod)
@@ -70,6 +80,7 @@ Doc exhaustive : `beemobot-api/API.md` (66 KB).
 - Vérif env au boot : `Verification/verification.py` exige `BOT_TOKEN_TEST` et `RIOT_API_KEY`
 - Lancement : `python main.py` — utilise `BOT_TOKEN_TEST` (mode dev)
 - Encodage `requirements.txt` : **UTF-16 LE** (attention si lecture)
+- **Prod** : déployé sur Coolify (`bee.beemobot.fr`)
 
 ### beemobot-api — AdonisJS 6
 - 8 migrations appliquées : `users`, `auth_access_tokens`, `shrooms`, `reports`, `respects`, `champions`, modify username, riot fields
@@ -81,6 +92,7 @@ Doc exhaustive : `beemobot-api/API.md` (66 KB).
 - Stack DB : PostgreSQL local (port 5432, user `postgres`)
 - Scripts : `pnpm dev` (port 3333, HMR), `pnpm build`, `node ace migration:run`, `node ace db:seed`
 - Doc API : `API.md`
+- **Prod** : déployé sur Coolify (`api.beemobot.fr`)
 
 ### beemobot-webapp — Next.js 15 (App Router)
 - Atomic Design : `src/components/{atoms,molecules,organisms,templates}/`
@@ -91,8 +103,9 @@ Doc exhaustive : `beemobot-api/API.md` (66 KB).
 - Mini-jeux : `DodgeSkillshotGame`, `GuessChampionGame`, `LoLTriviaGame`, `MemoryMatchGame`, `TeemoMinesweeper`
 - Sections landing : `EpicHeroSection`, `FeatureShowcase`, `StatsSection`, `MinigamesPreview`, `TestimonialsSection`, `CTASection`, `SponsorsSection`
 - Three.js (`@react-three/fiber` + drei), Framer Motion, particules, hexagones
-- `next.config.mjs` injecte `API_URL` (actuellement ngrok) et `BOT_INVITE_URL`
+- `next.config.mjs` injecte `API_URL` (prod : `https://api.beemobot.fr`) et `BOT_INVITE_URL`
 - Scripts : `pnpm dev` (port 3000), `pnpm build`, `pnpm start`
+- **Prod** : déployé sur Coolify (`beemobot.fr`)
 
 ## Conventions partagées
 
@@ -114,13 +127,16 @@ Doc exhaustive : `beemobot-api/API.md` (66 KB).
 
 - **Clé Riot dev expire toutes les 24h** → renouveler sur https://developer.riotgames.com/
 - `RIOT_CLIENT_ID` / `RIOT_CLIENT_SECRET` côté API sont **optionnels** (OAuth Riot désactivé dans `config/ally.ts`)
-- `next.config.mjs:env.API_URL` pointe sur une **URL ngrok** — à modifier en local pour pointer sur `http://localhost:3333`
+- En local, override `API_URL` côté webapp pour pointer sur `http://localhost:3333` (sinon il tape la prod `api.beemobot.fr`)
 - Le bot tourne par défaut en `BOT_TOKEN_TEST`, **pas prod** (cf. `main.py:11`)
 - `requirements.txt` du bot est encodé **UTF-16 LE** (ne pas lire avec `cat` simple, utiliser `iconv -f UTF-16`)
 
 ## Identifiants & URLs utiles
 
-- API prod : `https://api.beemobot.fr`
+- Webapp prod : `https://beemobot.fr` (Coolify)
+- API prod : `https://api.beemobot.fr` (Coolify)
+- Bot prod : `https://bee.beemobot.fr` (Coolify)
 - Discord bot invite : `https://discord.com/oauth2/authorize?client_id=1316056047936471133&permissions=8&scope=bot`
 - Discord callback (dev) : `http://localhost:3333/auth/discord/callback`
+- Discord callback (prod) : `https://api.beemobot.fr/auth/discord/callback`
 - Riot callback (dev, désactivé) : `http://localhost:3333/auth/riot/callback`
