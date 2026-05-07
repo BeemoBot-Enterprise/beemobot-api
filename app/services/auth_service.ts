@@ -5,12 +5,18 @@
 
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import RiotLinkChallenge from '#models/riot_link_challenge'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 import { linkRiotValidator } from '#validators/auth'
-import RiotApiService from '#services/riot_api_service'
+import RiotApiService, { RiotApiError, RiotRegion } from '#services/riot_api_service'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+
+// Pool d'icônes universellement disponibles (level-based, débloquées dès le niveau 1-30).
+// Évite de demander une icône esports/event que le user ne posséderait pas.
+const CHALLENGE_ICON_POOL = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28]
+const CHALLENGE_TTL_SECONDS = 600 // 10 min
 
 export default class AuthService {
   public async handleDiscordCallback({ ally, response }: HttpContext) {
@@ -64,24 +70,47 @@ export default class AuthService {
     }
   }
 
-  public async linkRiotAccount({
-    request,
-    response,
-    auth,
-  }: HttpContext) {
+  private handleRiotError(
+    err: unknown,
+    response: HttpContext['response'],
+    payload: { gameName: string; tagLine: string; region: string }
+  ) {
+    if (err instanceof RiotApiError) {
+      if (err.statusCode === 404) {
+        return response.status(404).json({
+          error: 'riot_id_not_found',
+          message: `Riot ID "${payload.gameName}#${payload.tagLine}" introuvable sur ${payload.region.toUpperCase()}. Vérifie l'orthographe et la région.`,
+        })
+      }
+      const status =
+        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502
+      return response.status(status).json({
+        error: 'riot_api_error',
+        message: err.publicMessage,
+      })
+    }
+    throw err
+  }
+
+  public async previewLink({ request, response, auth }: HttpContext) {
     const payload = await request.validateUsing(linkRiotValidator)
     const user = auth.user
     if (!user) {
       return response.status(401).json({ error: 'unauthenticated' })
     }
     const riot = new RiotApiService(payload.region)
-    const account = await riot.getAccountByRiotId(payload.gameName, payload.tagLine)
+    let account
+    let summoner
+    try {
+      account = await riot.getAccountByRiotId(payload.gameName, payload.tagLine)
+      summoner = await riot.getSummonerByPuuid(account.puuid)
+    } catch (err) {
+      return this.handleRiotError(err, response, payload)
+    }
 
-    user.riotPuuid = account.puuid
-    user.riotGameName = account.gameName
-    user.riotTagLine = account.tagLine
-    user.linkedAt = DateTime.now()
-    await user.save()
+    const owner = await User.findBy('riotPuuid', account.puuid)
+    const alreadyLinkedByOther = !!owner && owner.id !== user.id
+    const alreadyLinkedByMe = !!owner && owner.id === user.id
 
     const phantomRow = await db
       .from('reputation_events')
@@ -93,8 +122,164 @@ export default class AuthService {
       puuid: account.puuid,
       gameName: account.gameName,
       tagLine: account.tagLine,
+      profileIconId: summoner.profileIconId,
+      summonerLevel: summoner.summonerLevel,
+      region: payload.region,
+      alreadyLinkedByOther,
+      alreadyLinkedByMe,
       phantomEvents: phantomTotal,
     })
+  }
+
+  public async createLinkChallenge({ request, response, auth }: HttpContext) {
+    const payload = await request.validateUsing(linkRiotValidator)
+    const user = auth.user
+    if (!user) {
+      return response.status(401).json({ error: 'unauthenticated' })
+    }
+
+    const riot = new RiotApiService(payload.region)
+    let account
+    let summoner
+    try {
+      account = await riot.getAccountByRiotId(payload.gameName, payload.tagLine)
+      summoner = await riot.getSummonerByPuuid(account.puuid)
+    } catch (err) {
+      return this.handleRiotError(err, response, payload)
+    }
+
+    // Refus si déjà lié à un autre user — même check que dans verify.
+    const owner = await User.findBy('riotPuuid', account.puuid)
+    if (owner && owner.id !== user.id) {
+      return response.status(409).json({
+        error: 'already_linked',
+        message: `Ce compte Riot est déjà lié à un autre profil BeemoBot. Si tu penses qu'il a été usurpé, contacte le support.`,
+      })
+    }
+
+    // Choisir une icône différente de l'actuelle pour forcer un changement réel.
+    const candidates = CHALLENGE_ICON_POOL.filter((id) => id !== summoner.profileIconId)
+    const expectedIconId = candidates[Math.floor(Math.random() * candidates.length)]
+
+    // Invalider les challenges en cours pour ce user (un seul actif à la fois).
+    await RiotLinkChallenge.query().where('user_id', user.id).delete()
+
+    const expiresAt = DateTime.now().plus({ seconds: CHALLENGE_TTL_SECONDS })
+    await RiotLinkChallenge.create({
+      userId: user.id,
+      puuid: account.puuid,
+      gameName: account.gameName,
+      tagLine: account.tagLine,
+      region: payload.region,
+      expectedIconId,
+      previousIconId: summoner.profileIconId,
+      expiresAt,
+    })
+
+    return response.json({
+      expectedIconId,
+      previousIconId: summoner.profileIconId,
+      gameName: account.gameName,
+      tagLine: account.tagLine,
+      region: payload.region,
+      expiresAt: expiresAt.toISO(),
+      ttlSeconds: CHALLENGE_TTL_SECONDS,
+    })
+  }
+
+  public async verifyLinkChallenge({ response, auth }: HttpContext) {
+    const user = auth.user
+    if (!user) {
+      return response.status(401).json({ error: 'unauthenticated' })
+    }
+
+    const challenge = await RiotLinkChallenge.query()
+      .where('user_id', user.id)
+      .orderBy('created_at', 'desc')
+      .first()
+
+    if (!challenge) {
+      return response.status(404).json({
+        error: 'no_challenge',
+        message: `Aucun challenge en cours. Recommence depuis la recherche.`,
+      })
+    }
+
+    if (challenge.expiresAt < DateTime.now()) {
+      await challenge.delete()
+      return response.status(410).json({
+        error: 'challenge_expired',
+        message: `Le challenge a expiré. Recommence depuis la recherche.`,
+      })
+    }
+
+    // Re-check duplicate au moment de la vérif (au cas où quelqu'un d'autre a lié entre temps).
+    const owner = await User.findBy('riotPuuid', challenge.puuid)
+    if (owner && owner.id !== user.id) {
+      await challenge.delete()
+      return response.status(409).json({
+        error: 'already_linked',
+        message: `Ce compte Riot a été lié à un autre profil entre-temps. Contacte le support si tu penses qu'il a été usurpé.`,
+      })
+    }
+
+    const riot = new RiotApiService(challenge.region as RiotRegion)
+    let summoner
+    try {
+      summoner = await riot.getSummonerByPuuid(challenge.puuid)
+    } catch (err) {
+      return this.handleRiotError(err, response, {
+        gameName: challenge.gameName,
+        tagLine: challenge.tagLine,
+        region: challenge.region,
+      })
+    }
+
+    if (summoner.profileIconId !== challenge.expectedIconId) {
+      return response.status(409).json({
+        error: 'icon_mismatch',
+        message: `On ne voit pas encore la bonne icône. Patiente 30s puis réessaie. (Attendu : ${challenge.expectedIconId}, vu : ${summoner.profileIconId})`,
+        currentIconId: summoner.profileIconId,
+        expectedIconId: challenge.expectedIconId,
+      })
+    }
+
+    // Vérification OK → liaison.
+    user.riotPuuid = challenge.puuid
+    user.riotGameName = challenge.gameName
+    user.riotTagLine = challenge.tagLine
+    user.linkedAt = DateTime.now()
+    await user.save()
+
+    const previousIconId = challenge.previousIconId
+    await challenge.delete()
+
+    const phantomRow = await db
+      .from('reputation_events')
+      .where('receiver_puuid', user.riotPuuid)
+      .count('* as cnt')
+    const phantomTotal = Number(phantomRow[0].cnt ?? 0)
+
+    return response.json({
+      puuid: user.riotPuuid,
+      gameName: user.riotGameName,
+      tagLine: user.riotTagLine,
+      previousIconId,
+      phantomEvents: phantomTotal,
+    })
+  }
+
+  public async unlinkRiotAccount({ response, auth }: HttpContext) {
+    const user = auth.user
+    if (!user) {
+      return response.status(401).json({ error: 'unauthenticated' })
+    }
+    user.riotPuuid = null
+    user.riotGameName = null
+    user.riotTagLine = null
+    user.linkedAt = null
+    await user.save()
+    return response.json({ ok: true })
   }
 
   public async handleGenerateAccessToken({ response }: HttpContext, user: User) {

@@ -25,14 +25,22 @@ export class RiotApiError extends Error {
   readonly statusCode: number
   readonly publicMessage: string
 
-  constructor(statusCode: number, rawBody: string) {
-    const publicMessage = RiotApiError.statusToMessage(statusCode)
+  constructor(statusCode: number, rawBody: string, overrideMessage?: string) {
+    const publicMessage = overrideMessage ?? RiotApiError.statusToMessage(statusCode)
     super(publicMessage)
     this.name = 'RiotApiError'
     this.statusCode = statusCode
     this.publicMessage = publicMessage
     // Raw body kept on the error for server-side logs only — never serialized to client.
     Object.defineProperty(this, 'rawBody', { value: rawBody, enumerable: false })
+  }
+
+  static unreachable(reason: string): RiotApiError {
+    return new RiotApiError(
+      503,
+      reason,
+      "API Riot injoignable depuis le serveur. Vérifie ta connexion / VPN / firewall, puis réessaie."
+    )
   }
 
   private static statusToMessage(status: number): string {
@@ -73,11 +81,18 @@ export default class RiotApiService {
   }
 
   private async makeRequest<T>(url: string): Promise<T> {
-    const response = await fetch(url, {
-      headers: {
-        'X-Riot-Token': this.apiKey,
-      },
-    })
+    let response
+    try {
+      response = await fetch(url, {
+        headers: {
+          'X-Riot-Token': this.apiKey,
+        },
+      })
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      logger.warn({ url, err: reason }, 'Riot API unreachable (network/TLS)')
+      throw RiotApiError.unreachable(reason)
+    }
 
     if (!response.ok) {
       const body = await response.text()
@@ -272,8 +287,14 @@ export default class RiotApiService {
   async getLatestVersion(): Promise<string> {
     return Cache.memo('ddragon:latest', 3600, async () => {
       const url = `${RiotApiService.DDRAGON_BASE}/api/versions.json`
-      const versions = (await fetch(url).then((r) => r.json())) as string[]
-      return versions[0]
+      try {
+        const versions = (await fetch(url).then((r) => r.json())) as string[]
+        return versions[0]
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err)
+        logger.warn({ url, err: reason }, 'Data Dragon unreachable')
+        throw RiotApiError.unreachable(reason)
+      }
     })
   }
 
@@ -315,6 +336,12 @@ export default class RiotApiService {
   private async fetchDataDragon<T>(path: string): Promise<T> {
     const version = await this.getLatestVersion()
     const url = `${RiotApiService.DDRAGON_BASE}/cdn/${version}/${path}`
-    return (await fetch(url).then((r) => r.json())) as T
+    try {
+      return (await fetch(url).then((r) => r.json())) as T
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err)
+      logger.warn({ url, err: reason }, 'Data Dragon unreachable')
+      throw RiotApiError.unreachable(reason)
+    }
   }
 }

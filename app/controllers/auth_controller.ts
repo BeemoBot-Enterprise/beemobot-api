@@ -19,9 +19,24 @@ export default class AuthController {
     return await this.authService.handleDiscordCallback({ ally, response })
   }
 
-  public async linkRiot(ctx: HttpContext) {
+  public async previewLink(ctx: HttpContext) {
     // @ts-ignore
-    return await this.authService.linkRiotAccount(ctx)
+    return await this.authService.previewLink(ctx)
+  }
+
+  public async createLinkChallenge(ctx: HttpContext) {
+    // @ts-ignore
+    return await this.authService.createLinkChallenge(ctx)
+  }
+
+  public async verifyLinkChallenge(ctx: HttpContext) {
+    // @ts-ignore
+    return await this.authService.verifyLinkChallenge(ctx)
+  }
+
+  public async unlinkRiot(ctx: HttpContext) {
+    // @ts-ignore
+    return await this.authService.unlinkRiotAccount(ctx)
   }
 
   public async generateAccessToken({ response }: HttpContext, user: User) {

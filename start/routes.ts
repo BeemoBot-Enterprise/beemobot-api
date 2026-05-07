@@ -36,7 +36,10 @@ router.get('/auth/discord/callback', [AuthController, 'discordCallback'])
 router.get('/auth/', [AuthController, 'discordCallback'])
 
 // Routes authentifiées (token requis)
-router.post('/auth/link', [AuthController, 'linkRiot']).use(middleware.auth())
+router.post('/auth/link/preview', [AuthController, 'previewLink']).use(middleware.auth())
+router.post('/auth/link/challenge', [AuthController, 'createLinkChallenge']).use(middleware.auth())
+router.post('/auth/link/verify', [AuthController, 'verifyLinkChallenge']).use(middleware.auth())
+router.post('/auth/unlink', [AuthController, 'unlinkRiot']).use(middleware.auth())
 
 // Routes rep-system (bot uses Discord ID lookup, no auth middleware)
 router.get('/rep/eligible', [RepController, 'eligible'])
