@@ -476,10 +476,10 @@ export default class LolController {
     }
 
     const ranks = await Promise.all(
-      active.participants.map(async (p: any) => {
+      active.participants.map(async (p) => {
         try {
           const entries = await riot.getSummonerRank(p.puuid)
-          const solo = entries.find((e: any) => e.queueType === 'RANKED_SOLO_5x5') ?? entries[0] ?? null
+          const solo = entries.find((e) => e.queueType === 'RANKED_SOLO_5x5') ?? entries[0] ?? null
           return { puuid: p.puuid, teamId: p.teamId, rank: solo }
         } catch {
           return { puuid: p.puuid, teamId: p.teamId, rank: null }
@@ -495,6 +495,7 @@ export default class LolController {
               tier: r.rank.tier as RiotTier,
               division: r.rank.rank as RiotDivision,
               hotStreak: r.rank.hotStreak,
+              // Spectator v5 doesn't expose mastery points; we treat them as 0 here.
               masteryPoints: 0,
             }
           : null
@@ -509,7 +510,14 @@ export default class LolController {
       ? Math.round((scoresByTeam[200].reduce((a, b) => a + b, 0) / scoresByTeam[200].length) * 10) / 10
       : 0
 
-    const selfTeam = active.participants.find((p: any) => p.puuid === user.riotPuuid)?.teamId ?? 100
+    const selfParticipant = active.participants.find((p) => p.puuid === user.riotPuuid)
+    if (!selfParticipant) {
+      return response.status(500).json({
+        error: 'self_not_in_game',
+        message: 'User puuid not found in active game participants. Possible Riot data inconsistency.',
+      })
+    }
+    const selfTeam = selfParticipant.teamId
     const myAvg = selfTeam === 100 ? avg100 : avg200
     const oppAvg = selfTeam === 100 ? avg200 : avg100
     const diff = Math.round((myAvg - oppAvg) * 10) / 10
