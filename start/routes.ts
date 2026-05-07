@@ -103,3 +103,4 @@ router.get('/lol/summoner/:summonerName/masteries', [LolController, 'getChampion
 router.get('/lol/summoner/:summonerName/matches', [LolController, 'getMatchHistory'])
 router.get('/lol/match/:matchId', [LolController, 'getMatchDetails'])
 router.get('/lol/debrief/by-discord/:id', [LolController, 'debriefByDiscord'])
+router.get('/lol/predict/by-discord/:id', [LolController, 'predictByDiscord'])

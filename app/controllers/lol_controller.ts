@@ -12,6 +12,7 @@ import RiotApiService, {
 import User from '#models/user'
 import DebriefService from '#services/debrief_service'
 import { mapQueueId } from '#services/riot_queue_types'
+import PredictService, { RiotTier, RiotDivision } from '#services/predict_service'
 
 function sanitizeError(error: unknown): { status: number; message: string } {
   if (error instanceof RiotApiError) {
@@ -451,5 +452,75 @@ export default class LolController {
     const queueType = mapQueueId(match.info.queueId)
     const result = DebriefService.analyze(participant, matchIds[0], match.info.gameDuration, queueType)
     return response.json(result)
+  }
+
+  /**
+   * GET /lol/predict/by-discord/:id
+   * Prédit l'issue de la partie en cours d'un joueur lié via son Discord ID
+   */
+  async predictByDiscord({ params, response }: HttpContext) {
+    const user = await User.findBy('discordId', params.id)
+    if (!user || !user.riotPuuid) {
+      return response.status(404).json({ error: 'not_linked' })
+    }
+    // TODO: use user.riotRegion when a region column is added to the User model.
+    const riot = new RiotApiService('euw1')
+    let active
+    try {
+      active = await riot.getActiveGameByPuuid(user.riotPuuid)
+    } catch (err) {
+      if (err instanceof RiotApiError && err.statusCode === 404) {
+        return response.status(404).json({ error: 'not_in_game' })
+      }
+      throw err
+    }
+
+    const ranks = await Promise.all(
+      active.participants.map(async (p: any) => {
+        try {
+          const entries = await riot.getSummonerRank(p.puuid)
+          const solo = entries.find((e: any) => e.queueType === 'RANKED_SOLO_5x5') ?? entries[0] ?? null
+          return { puuid: p.puuid, teamId: p.teamId, rank: solo }
+        } catch {
+          return { puuid: p.puuid, teamId: p.teamId, rank: null }
+        }
+      })
+    )
+
+    const scoresByTeam: Record<number, number[]> = { 100: [], 200: [] }
+    for (const r of ranks) {
+      const s = PredictService.rankScore(
+        r.rank
+          ? {
+              tier: r.rank.tier as RiotTier,
+              division: r.rank.rank as RiotDivision,
+              hotStreak: r.rank.hotStreak,
+              masteryPoints: 0,
+            }
+          : null
+      )
+      scoresByTeam[r.teamId].push(s)
+    }
+
+    const avg100 = scoresByTeam[100].length
+      ? Math.round((scoresByTeam[100].reduce((a, b) => a + b, 0) / scoresByTeam[100].length) * 10) / 10
+      : 0
+    const avg200 = scoresByTeam[200].length
+      ? Math.round((scoresByTeam[200].reduce((a, b) => a + b, 0) / scoresByTeam[200].length) * 10) / 10
+      : 0
+
+    const selfTeam = active.participants.find((p: any) => p.puuid === user.riotPuuid)?.teamId ?? 100
+    const myAvg = selfTeam === 100 ? avg100 : avg200
+    const oppAvg = selfTeam === 100 ? avg200 : avg100
+    const diff = Math.round((myAvg - oppAvg) * 10) / 10
+
+    return response.json({
+      gameId: String(active.gameId),
+      self: { teamId: selfTeam },
+      teamScores: { '100': avg100, '200': avg200 },
+      diff,
+      winPct: PredictService.predictWinPct(myAvg, oppAvg),
+      explanation: PredictService.explain(diff),
+    })
   }
 }
