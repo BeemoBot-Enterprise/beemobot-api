@@ -64,8 +64,28 @@ test.group('DebriefService.analyze', () => {
       'M_1', DURATION_25_MIN, 'RANKED_SOLO_5x5'
     )
     assert.lengthOf(r.verdicts, 3)
-    // At least one red (KDA < 1)
-    assert.isTrue(r.verdicts.some(v => v.severity === 'red'))
+    // First verdict must be the red (highest priority).
+    assert.equal(r.verdicts[0].severity, 'red')
+    // No green should appear when reds and yellows fill the 3 slots.
+    assert.isFalse(r.verdicts.some(v => v.severity === 'green'))
+  })
+
+  test('green verdicts are squeezed out by yellows when both compete', ({ assert }) => {
+    // KDA 7.5 + win → green carry; CS/min 4 (lane <5) → yellow; vision 0.32/min → yellow.
+    // No red. Top 3 should put both yellows before the green.
+    const r = DebriefService.analyze(
+      { ...baseParticipant, kills: 10, deaths: 2, assists: 5, win: true,
+        totalMinionsKilled: 100, visionScore: 8,
+        challenges: { killParticipation: 0.45 } },
+      'M_1', DURATION_25_MIN, 'RANKED_SOLO_5x5'
+    )
+    assert.lengthOf(r.verdicts, 3)
+    const severities = r.verdicts.map(v => v.severity)
+    const lastYellowIdx = severities.lastIndexOf('yellow')
+    const firstGreenIdx = severities.indexOf('green')
+    if (firstGreenIdx >= 0 && lastYellowIdx >= 0) {
+      assert.isAbove(firstGreenIdx, lastYellowIdx, 'yellows must appear before greens')
+    }
   })
 
   test('score is a letter grade', ({ assert }) => {

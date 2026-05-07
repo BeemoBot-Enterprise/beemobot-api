@@ -53,6 +53,19 @@ interface ScoredVerdict extends DebriefVerdict {
 const SEVERITY_VALUE: Record<Severity, number> = { red: 0, yellow: 5, green: 10 }
 const SEVERITY_RANK: Record<Severity, number> = { red: 3, yellow: 2, green: 1 }
 
+const HEURISTIC_THRESHOLDS = {
+  KDA_RED: 1.0,
+  KDA_GREEN_CARRY: 4.0,
+  CS_PER_MIN_LANE_LOW: 5,
+  CS_PER_MIN_JUNGLE_LOW: 4,
+  CS_PER_MIN_LANE_HIGH: 8,
+  VISION_PER_MIN_LOW: 1,
+  DAMAGE_RATIO_HIGH: 2.5,
+  DAMAGE_RATIO_CARRY_LOW: 1.0,
+  KILL_PARTICIPATION_HIGH: 0.7,
+  KILL_PARTICIPATION_LOW: 0.3,
+} as const
+
 export default class DebriefService {
   static analyze(
     p: ParticipantInput,
@@ -96,44 +109,44 @@ function applyHeuristics(s: DebriefStats, p: ParticipantInput): ScoredVerdict[] 
   const isJungle = p.teamPosition === 'JUNGLE'
   const isCarry = p.teamPosition === 'BOTTOM' || p.teamPosition === 'MIDDLE'
 
-  if (s.kda < 1.0) {
-    out.push({ severity: 'red', weight: 2, delta: 1.0 - s.kda,
+  if (s.kda < HEURISTIC_THRESHOLDS.KDA_RED) {
+    out.push({ severity: 'red', weight: 2, delta: HEURISTIC_THRESHOLDS.KDA_RED - s.kda,
       msg: `Tu es mort plus que tu as contribué (KDA ${s.kda}) — focus survie` })
   }
-  if (s.kda > 4.0 && p.win) {
-    out.push({ severity: 'green', weight: 2, delta: s.kda - 4.0,
+  if (s.kda > HEURISTIC_THRESHOLDS.KDA_GREEN_CARRY && p.win) {
+    out.push({ severity: 'green', weight: 2, delta: s.kda - HEURISTIC_THRESHOLDS.KDA_GREEN_CARRY,
       msg: `Carry-game propre (KDA ${s.kda}) 👏` })
   }
-  if (isLane && s.csPerMin < 5) {
-    out.push({ severity: 'yellow', weight: 1, delta: 5 - s.csPerMin,
+  if (isLane && s.csPerMin < HEURISTIC_THRESHOLDS.CS_PER_MIN_LANE_LOW) {
+    out.push({ severity: 'yellow', weight: 1, delta: HEURISTIC_THRESHOLDS.CS_PER_MIN_LANE_LOW - s.csPerMin,
       msg: `Farm en dessous du standard (${s.csPerMin}/min) — pratique le CS en custom` })
   }
-  if (isJungle && s.csPerMin < 4) {
-    out.push({ severity: 'yellow', weight: 1, delta: 4 - s.csPerMin,
+  if (isJungle && s.csPerMin < HEURISTIC_THRESHOLDS.CS_PER_MIN_JUNGLE_LOW) {
+    out.push({ severity: 'yellow', weight: 1, delta: HEURISTIC_THRESHOLDS.CS_PER_MIN_JUNGLE_LOW - s.csPerMin,
       msg: `Farm jungle bas (${s.csPerMin}/min) — clean tes camps plus vite` })
   }
-  if (isLane && s.csPerMin > 8) {
-    out.push({ severity: 'green', weight: 1, delta: s.csPerMin - 8,
+  if (isLane && s.csPerMin > HEURISTIC_THRESHOLDS.CS_PER_MIN_LANE_HIGH) {
+    out.push({ severity: 'green', weight: 1, delta: s.csPerMin - HEURISTIC_THRESHOLDS.CS_PER_MIN_LANE_HIGH,
       msg: `Excellent farm (${s.csPerMin}/min)` })
   }
-  if (s.visionPerMin < 1) {
-    out.push({ severity: 'yellow', weight: 1, delta: 1 - s.visionPerMin,
+  if (s.visionPerMin < HEURISTIC_THRESHOLDS.VISION_PER_MIN_LOW) {
+    out.push({ severity: 'yellow', weight: 1, delta: HEURISTIC_THRESHOLDS.VISION_PER_MIN_LOW - s.visionPerMin,
       msg: `Vision insuffisante (${s.visionPerMin}/min — vise 1+)` })
   }
-  if (s.damageRatio > 2.5) {
-    out.push({ severity: 'green', weight: 1, delta: s.damageRatio - 2.5,
+  if (s.damageRatio > HEURISTIC_THRESHOLDS.DAMAGE_RATIO_HIGH) {
+    out.push({ severity: 'green', weight: 1, delta: s.damageRatio - HEURISTIC_THRESHOLDS.DAMAGE_RATIO_HIGH,
       msg: `Excellent dmg/gold (${s.damageRatio}) — or bien valorisé` })
   }
-  if (isCarry && s.damageRatio < 1.0) {
-    out.push({ severity: 'yellow', weight: 1, delta: 1.0 - s.damageRatio,
+  if (isCarry && s.damageRatio < HEURISTIC_THRESHOLDS.DAMAGE_RATIO_CARRY_LOW) {
+    out.push({ severity: 'yellow', weight: 1, delta: HEURISTIC_THRESHOLDS.DAMAGE_RATIO_CARRY_LOW - s.damageRatio,
       msg: `Peu de dégâts pour ton rôle (dmg/gold ${s.damageRatio})` })
   }
-  if (s.killParticipation > 0.7 && p.win) {
-    out.push({ severity: 'green', weight: 1, delta: s.killParticipation - 0.7,
+  if (s.killParticipation > HEURISTIC_THRESHOLDS.KILL_PARTICIPATION_HIGH && p.win) {
+    out.push({ severity: 'green', weight: 1, delta: s.killParticipation - HEURISTIC_THRESHOLDS.KILL_PARTICIPATION_HIGH,
       msg: `Très impliqué dans les fights (${Math.round(s.killParticipation * 100)}%)` })
   }
-  if (s.killParticipation < 0.3) {
-    out.push({ severity: 'yellow', weight: 1, delta: 0.3 - s.killParticipation,
+  if (s.killParticipation < HEURISTIC_THRESHOLDS.KILL_PARTICIPATION_LOW) {
+    out.push({ severity: 'yellow', weight: 1, delta: HEURISTIC_THRESHOLDS.KILL_PARTICIPATION_LOW - s.killParticipation,
       msg: `Peu impliqué dans les fights — colle ton équipe en mid-game` })
   }
   return out
