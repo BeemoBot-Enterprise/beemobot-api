@@ -256,6 +256,33 @@ export default class RiotApiService {
   }
 
   /**
+   * Récupère la game en cours d'un joueur (Spectator v5).
+   * Throws RiotApiError(404) si le joueur n'est pas en game.
+   */
+  async getActiveGameByPuuid(puuid: string) {
+    const url = `${this.baseUrl}/lol/spectator/v5/active-games/by-summoner/${puuid}`
+    return this.makeRequest<{
+      gameId: number
+      gameStartTime: number
+      gameLength: number
+      gameMode: string
+      gameType: string
+      gameQueueConfigId: number
+      mapId: number
+      participants: Array<{
+        puuid: string
+        championId: number
+        teamId: 100 | 200
+        summonerId: string
+        spell1Id: number
+        spell2Id: number
+        perks: { perkIds: number[]; perkStyle: number; perkSubStyle: number }
+      }>
+      bannedChampions: Array<{ championId: number; teamId: number; pickTurn: number }>
+    }>(url)
+  }
+
+  /**
    * Récupère les informations d'un champion par son ID
    * Note: Utilise Data Dragon car l'API ne fournit pas directement les infos de champions
    */
