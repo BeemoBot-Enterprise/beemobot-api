@@ -125,4 +125,39 @@ test.group('GET /lol/scout/by-discord/:id', (group) => {
     response.assertStatus(500)
     assert.equal(response.body().error, 'self_not_in_game')
   })
+
+  test('serves cached response if same discordId calls within 15s', async ({ client, assert }) => {
+    await User.create({
+      discordId: 'D_FLOOD', username: 'u',
+      riotPuuid: 'P_S', riotGameName: 'Nunch', riotTagLine: 'N7789',
+      linkedAt: DateTime.now(),
+    })
+    let calls = 0
+    // @ts-expect-error monkey-patch
+    RiotApiService.prototype.makeRequest = async (url: string) => {
+      calls++
+      if (url.includes('/lol/spectator/v5/active-games')) {
+        return {
+          gameId: 1, gameStartTime: 0, gameLength: 60,
+          gameMode: 'CLASSIC', gameType: 'MATCHED_GAME',
+          gameQueueConfigId: 420, mapId: 11,
+          participants: [
+            { puuid: 'P_S', championId: 222, teamId: 100, summonerId: 'S1', spell1Id: 4, spell2Id: 7, perks: { perkIds: [], perkStyle: 0, perkSubStyle: 0 } },
+          ],
+          bannedChampions: [],
+        }
+      }
+      if (url.includes('/lol/league/v4')) return []
+      if (url.includes('/lol/champion-mastery/v4')) return []
+      if (url.includes('/lol/match/v5/matches/by-puuid')) return []
+      if (url.includes('versions.json')) return ['14.1.1']
+      if (url.includes('champion.json')) return { data: { Jinx: { key: '222', name: 'Jinx' } } }
+      return null
+    }
+
+    await client.get('/lol/scout/by-discord/D_FLOOD')
+    const callsAfterFirst = calls
+    await client.get('/lol/scout/by-discord/D_FLOOD')
+    assert.equal(calls, callsAfterFirst, 'second call should hit the anti-flood cache')
+  })
 })

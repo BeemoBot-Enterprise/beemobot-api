@@ -15,6 +15,25 @@ import { mapQueueId } from '#services/riot_queue_types'
 import PredictService, { RiotTier, RiotDivision } from '#services/predict_service'
 import LiveScoutService from '#services/live_scout_service'
 
+// Anti-flood cache: serve the same payload to the same discordId within 15s
+// to avoid re-hitting Riot if a user double-taps a command.
+const FLOOD_TTL_MS = 15_000
+const floodCache = new Map<string, { ts: number; payload: unknown; status: number }>()
+
+function floodGet(key: string): { payload: unknown; status: number } | null {
+  const entry = floodCache.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.ts > FLOOD_TTL_MS) {
+    floodCache.delete(key)
+    return null
+  }
+  return { payload: entry.payload, status: entry.status }
+}
+
+function floodSet(key: string, payload: unknown, status: number) {
+  floodCache.set(key, { ts: Date.now(), payload, status })
+}
+
 function sanitizeError(error: unknown): { status: number; message: string } {
   if (error instanceof RiotApiError) {
     const status = error.statusCode === 404 ? 404 : error.statusCode >= 500 ? 502 : 400
@@ -425,9 +444,17 @@ export default class LolController {
    * Analyse le dernier match d'un joueur lié via son Discord ID
    */
   async debriefByDiscord({ params, response }: HttpContext) {
+    const cacheKey = `debrief:${params.id}`
+    const cached = floodGet(cacheKey)
+    if (cached) {
+      return response.status(cached.status).json(cached.payload)
+    }
+
     const user = await User.findBy('discordId', params.id)
     if (!user || !user.riotPuuid) {
-      return response.status(404).json({ error: 'not_linked' })
+      const payload = { error: 'not_linked' }
+      floodSet(cacheKey, payload, 404)
+      return response.status(404).json(payload)
     }
 
     // TODO: use user.riotRegion when a region column is added to the User model.
@@ -438,7 +465,9 @@ export default class LolController {
     try {
       matchIds = await riot.getMatchHistory(user.riotPuuid, 'europe', 0, 1)
       if (matchIds.length === 0) {
-        return response.status(404).json({ error: 'no_recent_match' })
+        const payload = { error: 'no_recent_match' }
+        floodSet(cacheKey, payload, 404)
+        return response.status(404).json(payload)
       }
       match = await riot.getMatchDetails(matchIds[0], 'europe')
     } catch (error) {
@@ -448,10 +477,13 @@ export default class LolController {
 
     const participant = match.info.participants.find((p: any) => p.puuid === user.riotPuuid)
     if (!participant) {
-      return response.status(404).json({ error: 'no_recent_match' })
+      const payload = { error: 'no_recent_match' }
+      floodSet(cacheKey, payload, 404)
+      return response.status(404).json(payload)
     }
     const queueType = mapQueueId(match.info.queueId)
     const result = DebriefService.analyze(participant, matchIds[0], match.info.gameDuration, queueType)
+    floodSet(cacheKey, result, 200)
     return response.json(result)
   }
 
@@ -460,9 +492,17 @@ export default class LolController {
    * Prédit l'issue de la partie en cours d'un joueur lié via son Discord ID
    */
   async predictByDiscord({ params, response }: HttpContext) {
+    const cacheKey = `predict:${params.id}`
+    const cached = floodGet(cacheKey)
+    if (cached) {
+      return response.status(cached.status).json(cached.payload)
+    }
+
     const user = await User.findBy('discordId', params.id)
     if (!user || !user.riotPuuid) {
-      return response.status(404).json({ error: 'not_linked' })
+      const payload = { error: 'not_linked' }
+      floodSet(cacheKey, payload, 404)
+      return response.status(404).json(payload)
     }
     // TODO: use user.riotRegion when a region column is added to the User model.
     const riot = new RiotApiService('euw1')
@@ -471,7 +511,9 @@ export default class LolController {
       active = await riot.getActiveGameByPuuid(user.riotPuuid)
     } catch (err) {
       if (err instanceof RiotApiError && err.statusCode === 404) {
-        return response.status(404).json({ error: 'not_in_game' })
+        const payload = { error: 'not_in_game' }
+        floodSet(cacheKey, payload, 404)
+        return response.status(404).json(payload)
       }
       throw err
     }
@@ -523,14 +565,16 @@ export default class LolController {
     const oppAvg = selfTeam === 100 ? avg200 : avg100
     const diff = Math.round((myAvg - oppAvg) * 10) / 10
 
-    return response.json({
+    const payload = {
       gameId: String(active.gameId),
       self: { teamId: selfTeam },
       teamScores: { '100': avg100, '200': avg200 },
       diff,
       winPct: PredictService.predictWinPct(myAvg, oppAvg),
       explanation: PredictService.explain(diff),
-    })
+    }
+    floodSet(cacheKey, payload, 200)
+    return response.json(payload)
   }
 
   /**
@@ -538,9 +582,17 @@ export default class LolController {
    * Returns enriched live-game scout data for a player linked via their Discord ID
    */
   async scoutByDiscord({ params, response }: HttpContext) {
+    const cacheKey = `scout:${params.id}`
+    const cached = floodGet(cacheKey)
+    if (cached) {
+      return response.status(cached.status).json(cached.payload)
+    }
+
     const user = await User.findBy('discordId', params.id)
     if (!user || !user.riotPuuid) {
-      return response.status(404).json({ error: 'not_linked' })
+      const payload = { error: 'not_linked' }
+      floodSet(cacheKey, payload, 404)
+      return response.status(404).json(payload)
     }
     // TODO: use user.riotRegion when a region column is added to the User model.
     const riot = new RiotApiService('euw1')
@@ -549,7 +601,9 @@ export default class LolController {
       active = await riot.getActiveGameByPuuid(user.riotPuuid)
     } catch (err) {
       if (err instanceof RiotApiError && err.statusCode === 404) {
-        return response.status(404).json({ error: 'not_in_game' })
+        const payload = { error: 'not_in_game' }
+        floodSet(cacheKey, payload, 404)
+        return response.status(404).json(payload)
       }
       throw err
     }
@@ -585,6 +639,8 @@ export default class LolController {
       }
       throw err
     }
+
+    floodSet(cacheKey, result, 200)
     return response.json(result)
   }
 }
